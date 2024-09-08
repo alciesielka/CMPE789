@@ -52,7 +52,7 @@ class PowerModeAutopilot(nn.Module):
         self.fc1 = nn.Linear(512*8*8, num_classes)
         self.fc2 = nn.Linear(512*8*8, num_classes)
         #############################################
-        pass
+        
         
     def forward(self, x):
         #############################################
@@ -87,7 +87,7 @@ class PowerModeAutopilot(nn.Module):
         
         return x
         #############################################
-        pass
+        
 
 class PowerMode_autopilot:
     def __init__(self, data_path='data', learning_rate=1.0e-4, keep_prob=0.5, batch_size=40,
@@ -101,9 +101,9 @@ class PowerMode_autopilot:
         self.test_size = test_size
         self.steps_per_epoch = steps_per_epoch
         self.epochs = epochs
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda1' if torch.cuda.is_available() else 'cpu')
 
-    def load_data(self):
+    def load_data(self): # ADC
         """
         Read data from driving_log.csv file, then split the data using train_test_split function into training set and validation set,
         For every piece of data,
@@ -112,8 +112,34 @@ class PowerMode_autopilot:
         :return: training sets and validation sets of images and steering value (format: X_train, X_valid, y_train, y_valid)
         """
         #############################################
+        """
+                Notes 
+                X is in form: [[center, left, right],  [center, left, right], [center, left, right] ....]
+      
+        """
         #"Your code here"
-        pass
+        X_array = []
+        Y_array = []
+        data_frame = pd.read_csv('driving_log.csv', header=None)
+
+        # loop through each row in CSV
+        for index, row in data_frame.iterrows():
+            direction_set = []
+            direction_set.append(row[0])
+            direction_set.append(row[1])
+            direction_set.append(row[2])
+            X_array.append(direction_set)
+
+            Y_array.append(row[6])
+
+        # create numpy arrays
+        X = np.array(X_array)
+        Y = np.array(Y_array)
+
+        # 20% used for testing
+        X_train, X_valid, y_train, y_valid = train_test_split(X, Y, test_size= 0.2, random_state= 42)
+        return X_train, X_valid, y_train, y_valid
+        #############################################    
 
     """
     augment image
@@ -310,7 +336,7 @@ class PowerMode_autopilot:
             steers = torch.from_numpy(steers).float().unsqueeze(1).to(self.device)
             yield images, steers
 
-    def train_model(self, model, X_train, X_valid, y_train, y_valid):
+    def train_model(self, model, X_train, X_valid, y_train, y_valid): #ADC
         """
         train the model
         :param model:
@@ -320,10 +346,67 @@ class PowerMode_autopilot:
         :param y_valid:
         :return:
         """
-        #############################################
-        #"Your code here"
-        pass
+        #############################################    
+        # Loss Function
+        criterion = nn.CrossEntropyLoss()
+        # Optimizer
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
+     
+        # generate 
+        train_loader = self.batch_generator(X_train, y_train, True)
+        test_loader = self.batch_generator(X_valid, y_valid, False)
 
+        top_loss =  float('inf')
+
+        for epoch in range(self.epochs):
+            model.train() # set model to training mode
+            running_train_loss = 0.0
+            for images, steering_angles in train_loader:
+                images = images.to(self.device)
+                steering_angles = steering_angles.to(self.device)
+
+                # Forward pass
+                outputs = model(images) # how is this calling model.forward() PyTorch?
+                loss = criterion(outputs, steering_angles)
+
+                # Backward and optimize
+                optimizer.zero_grad()  # Reset the gradients
+                loss.backward()  # Compute gradients
+                optimizer.step()  # Update model parameters
+
+                running_train_loss += loss.item()
+
+            train_loss_avg = running_train_loss / len(train_loader )
+            print("Epoch: ", epoch, "Training Loss: ", train_loss_avg)
+
+            model.eval() # Set the model to evaluation mode
+            running_test_loss = 0.0
+            with torch.no_grad():
+                for images, steering_angles in test_loader :
+                    images = images.to(self.device)
+                    steering_angles = steering_angles.to(self.device)
+ 
+                    # Forward pass
+                    outputs = model(images)
+                    loss = criterion(outputs, steering_angles)
+ 
+                    # Compute accuracy
+                    _, predicted = torch.max(outputs.data, 1) # first return value is the max value
+ 
+                    running_test_loss += loss.item()
+                    
+
+                # Calculate average loss and accuracy
+                test_loss_avg = running_test_loss / len(test_loader )
+                print("Epoch: ", epoch, "Training Loss: ", test_loss_avg)
+
+                if (self.save_best_only) and (test_loss_avg < top_loss):
+                    top_loss = test_loss_avg
+                    torch.save(model.state_dict(), 'model.pth')
+
+
+
+        #############################################
 
 def main():
     autopilot = PowerMode_autopilot(data_path='your_data_path', learning_rate=1.0e-4, keep_prob=0.5, batch_size=40,
