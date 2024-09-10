@@ -60,9 +60,9 @@ class PowerModeAutopilot(nn.Module):
         self.conv53 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
         
         # Fully connected layers
-        self.fc1 = nn.Linear(512 * 7 * 7, 4096)
+        self.fc1 = nn.Linear(512 * 3, 4096) # this also needs to be the same input at line 98
         self.fc2 = nn.Linear(4096, 4096)
-        self.fc3 = nn.Linear(4096, 1000)  # 1000 = num classes = ??
+        self.fc3 = nn.Linear(4096, 1)  # 1000 = num classes = ??
         
         # Dropout for regularization
         self.dropout = nn.Dropout(p=keep_prob)
@@ -92,9 +92,10 @@ class PowerModeAutopilot(nn.Module):
         x = nn.functional.relu(self.conv43(x))
         x = self.pool(x)
         
-
+        print(x.size)
+        print(x.shape) # [batch size, channel num, h, w]
         # Flatten for fully connected layers
-        x = x.view(x.size(0), -1)  # Flatten the tensor
+        x = x.view(-1, x.size(0)*x.size(1)*x.size(2))  # -1 automatically considers batch size
         
         # Fully connected layers with dropout
         x = nn.functional.relu(self.fc1(x))
