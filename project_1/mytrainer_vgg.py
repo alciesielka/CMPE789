@@ -79,7 +79,7 @@ class PowerModeAutopilot(nn.Module):
         # x = self.conv423_5123(x)
         # x = nn.functional.relu(x)        
         x_shape = x.size
-        x = x.flatten(7*7*512) # may need to flatten instead of view ??
+        x = x.flatten(8*8*512) # may need to flatten instead of view ??
         x = self.fc1(x)
         x = self.fc2(x)
         x = nn.functional.softmax(x)
