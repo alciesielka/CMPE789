@@ -94,6 +94,8 @@ class PowerModeAutopilot(nn.Module):
         
         print(x.size)
         print(x.shape) # [batch size, channel num, h, w]
+        print(f"FULLY CONNECTED LAYER INPUT: {x.size(0)*x.size(1)*x.size(2)}")
+
         # Flatten for fully connected layers
         x = x.view(-1, x.size(0)*x.size(1)*x.size(2))  # -1 automatically considers batch size
         
