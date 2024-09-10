@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib.image as mpimg
 
 # Validation data is updated to use to save the best model among epochs
-
 class PowerModeAutopilot(nn.Module):
     # write your model here
     def __init__(self, keep_prob=0.5):
@@ -48,7 +47,7 @@ class PowerModeAutopilot(nn.Module):
         self.conv323 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1) # this will need to be called twice
         self.conv41 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
         self.conv423_5123 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1) # this will need to be called twice
-    
+
         self.fc1 = nn.Linear(512*8*8, num_classes)
         self.fc2 = nn.Linear(512*8*8, num_classes)
         #############################################
@@ -79,8 +78,8 @@ class PowerModeAutopilot(nn.Module):
         # x = nn.functional.relu(x)
         # x = self.conv423_5123(x)
         # x = nn.functional.relu(x)        
-        
-        x = x.view(-1, 128*8*8) # may need to flatten instead of view ??
+        x_shape = x.shape
+        x = x.view(-1, x_shape) # may need to flatten instead of view ??
         x = self.fc1(x)
         x = self.fc2(x)
         x = nn.functional.softmax(x)
