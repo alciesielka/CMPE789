@@ -40,14 +40,14 @@ class PowerModeAutopilot(nn.Module):
         # fix this code for later
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.conv11 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
-        self.conv12 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
-        self.conv21 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
-        self.conv22 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1)
-        self.conv31 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
-        self.conv323 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1) # this will need to be called twice
-        self.conv41 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
-        self.conv423_5123 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1) # this will need to be called twice
+        self.conv11 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv12 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv21 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.conv22 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.conv31 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
+        self.conv323 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1) # this will need to be called twice
+        self.conv41 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
+        self.conv423_5123 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1) # this will need to be called twice
     
         self.fc1 = nn.Linear(512*8*8, num_classes)
         self.fc2 = nn.Linear(512*8*8, num_classes)
@@ -66,7 +66,7 @@ class PowerModeAutopilot(nn.Module):
         x = self.conv22(x)
         x = nn.functional.relu(x)
         x = self.pool
-        x = self.conv31(x)
+        x = self.conv31(x) # error line
         x = nn.functional.relu(x)
         x = self.conv323(x)
         x = nn.functional.relu(x)
