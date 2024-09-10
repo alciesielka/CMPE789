@@ -15,8 +15,6 @@ class PowerModeAutopilot(nn.Module):
     def __init__(self, keep_prob=0.5):
         super(PowerModeAutopilot, self).__init__()
         #############################################
-        num_classes = 3 # this is subject to change!!
-
         """
         VGG style model:
         2 convs (3x3, depth 64)
@@ -36,53 +34,77 @@ class PowerModeAutopilot(nn.Module):
         dropout layers?
         try vgg 19? that would turn the 3 convs into 4, may be too many params though!
         """
-        # fix this code for later
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-
+        
+        # Block 1
         self.conv11 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
         self.conv12 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
+        
+        # Block 2
         self.conv21 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
         self.conv22 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1)
+        
+        # Block 3
         self.conv31 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
-        self.conv323 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1) # this will need to be called twice
+        self.conv32 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
+        self.conv33 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
+        
+        # Block 4
         self.conv41 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
-        self.conv423_5123 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1) # this will need to be called twice
-
-        self.fc1 = nn.Linear(512*8*8, num_classes)
-        self.fc2 = nn.Linear(512*8*8, num_classes)
+        self.conv42 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+        self.conv43 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+        
+        # Block 5: probably wont need
+        self.conv51 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+        self.conv52 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+        self.conv53 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+        
+        # Fully connected layers
+        self.fc1 = nn.Linear(512 * 7 * 7, 4096)
+        self.fc2 = nn.Linear(4096, 4096)
+        self.fc3 = nn.Linear(4096, 1000)  # 1000 = num classes = ??
+        
+        # Dropout for regularization
+        self.dropout = nn.Dropout(p=keep_prob)
         #############################################
         
         
     def forward(self, x):
-        #############################################
-        x = self.conv11(x)# this will need to be convolved twice before 
-        x = nn.functional.relu(x)
-        x = self.conv12(x)
-        x = nn.functional.relu(x)
+        # Block 1
+        x = nn.functional.relu(self.conv11(x))
+        x = nn.functional.relu(self.conv12(x))
         x = self.pool(x)
-        x = self.conv21(x)
-        x = nn.functional.relu(x)
-        x = self.conv22(x)
-        x = nn.functional.relu(x)
-        # x = self.pool
-        # x = self.conv31(x)
-        # x = nn.functional.relu(x)
-        # x = self.conv323(x)
-        # x = nn.functional.relu(x)
-        # x = self.conv323(x)
-        # x = nn.functional.relu(x)
-        # x = self.pool(x)
-        # x = self.conv41(x)
-        # x = nn.functional.relu(x)
-        # x = self.conv423_5123(x)
-        # x = nn.functional.relu(x)
-        # x = self.conv423_5123(x)
-        # x = nn.functional.relu(x)        
-        x_shape = x.size
-        x = x.flatten(8*8*512) # may need to flatten instead of view ??
-        x = self.fc1(x)
-        x = self.fc2(x)
-        x = nn.functional.softmax(x)
+        
+        # Block 2
+        x = nn.functional.relu(self.conv21(x))
+        x = nn.functional.relu(self.conv22(x))
+        x = self.pool(x)
+        
+        # Block 3
+        x = nn.functional.relu(self.conv31(x))
+        x = nn.functional.relu(self.conv32(x))
+        x = nn.functional.relu(self.conv33(x))
+        x = self.pool(x)
+        
+        # Block 4
+        x = nn.functional.relu(self.conv41(x))
+        x = nn.functional.relu(self.conv42(x))
+        x = nn.functional.relu(self.conv43(x))
+        x = self.pool(x)
+        
+
+        # Flatten for fully connected layers
+        x = x.view(x.size(0), -1)  # Flatten the tensor
+        
+        # Fully connected layers with dropout
+        x = nn.functional.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = nn.functional.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = self.fc3(x)
+        
+        # Softmax for classification
+        x = nn.functional.softmax(x, dim=1)
         
         return x
         #############################################
