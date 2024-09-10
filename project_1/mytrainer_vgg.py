@@ -94,8 +94,8 @@ class PowerModeAutopilot(nn.Module):
         
 
         # Flatten for fully connected layers
-        x = x.view(x.size(0), -1)  # Flatten the tensor
-        
+        # x = x.view(x.size(0), -1)  # Flatten the tensor
+        x = x.reshape(x.size(0), -1)
         # Fully connected layers with dropout
         x = nn.functional.relu(self.fc1(x))
         x = self.dropout(x)
