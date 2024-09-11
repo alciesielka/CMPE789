@@ -386,6 +386,10 @@ class PowerMode_autopilot:
             model.train() # set model to training mode
             running_train_loss = 0.0
             for images, steering_angles in train_loader:
+
+                images = torch.from_numpy(images)
+                steering_angles = torch.from_numpy(steering_angles)
+
                 images = images.to(self.device)
                 steering_angles = steering_angles.to(self.device)
 
@@ -399,6 +403,8 @@ class PowerMode_autopilot:
                 optimizer.step()  # Update model parameters
 
                 running_train_loss += loss.item()
+
+                torch.cuda.empty_cache()
 
             train_loss_avg = running_train_loss / len(train_loader )
             print("Epoch: ", epoch, "Training Loss: ", train_loss_avg)
