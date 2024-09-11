@@ -60,7 +60,8 @@ class PowerModeAutopilot(nn.Module):
         self.conv53 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
         
         # Fully connected layers
-        self.fc1 = nn.Linear(512 * 3, 4096) # this also needs to be the same input at line 98
+        self.fc1 = nn.Linear(512 * 4 * 12, 4096) # this also needs to be the same input at line 98
+        # was 512 *3
         self.fc2 = nn.Linear(4096, 4096)
         self.fc3 = nn.Linear(4096, 1)  # 1000 = num classes = ??
         
@@ -97,8 +98,8 @@ class PowerModeAutopilot(nn.Module):
         print(f"FULLY CONNECTED LAYER INPUT: {x.size(0)*x.size(1)*x.size(2)}")
 
         # Flatten for fully connected layers
-        x = x.view(-1, x.size(0)*x.size(1)*x.size(2))  # -1 automatically considers batch size
-        
+        # was  x = x.view(-1, x.size(0)*x.size(1)*x.size(2))  # -1 automatically considers batch size
+        x = x.reshape(x.size(0), -1) 
         # Fully connected layers with dropout
         x = nn.functional.relu(self.fc1(x))
         x = self.dropout(x)
@@ -107,7 +108,7 @@ class PowerModeAutopilot(nn.Module):
         x = self.fc3(x)
         
         # Softmax for classification
-        x = nn.functional.softmax(x, dim=1)
+        #x = nn.functional.softmax(x, dim=1)
         
         return x
         #############################################
@@ -340,6 +341,7 @@ class PowerMode_autopilot:
         :return:
         """
         images = np.empty([self.batch_size, self.IMAGE_HEIGHT, self.IMAGE_WIDTH, self.IMAGE_CHANNELS])
+
         steers = np.empty(self.batch_size)
         while True:
             i = 0
@@ -351,6 +353,7 @@ class PowerMode_autopilot:
                 else:
                     image = self.load_image(center)
                 images[i] = self.preprocess(image)
+
                 steers[i] = steering_angle
                 i += 1
                 if i == self.batch_size:
@@ -377,6 +380,7 @@ class PowerMode_autopilot:
         optimizer = optim.Adam(model.parameters(), lr=0.001)
      
         # generate 
+       
         train_loader = self.batch_generator(X_train, y_train, True)
         test_loader = self.batch_generator(X_valid, y_valid, False)
 
@@ -386,6 +390,8 @@ class PowerMode_autopilot:
             model.train() # set model to training mode
             running_train_loss = 0.0
             for images, steering_angles in train_loader:
+                print("in for loop")
+                print(images)
                 images = images.to(self.device)
                 steering_angles = steering_angles.to(self.device)
 
