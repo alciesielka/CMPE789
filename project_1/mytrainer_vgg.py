@@ -379,9 +379,9 @@ class PowerMode_autopilot:
         """
         #############################################    
         # Loss Function
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.MSELoss()
         # Optimizer
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
+        optimizer = optim.Adam(model.parameters(), lr=0.0001)
      
         # generate 
        
@@ -428,11 +428,11 @@ class PowerMode_autopilot:
                 
                 image, steering_angles = next(test_batches)
 
-                images = images.to(self.device)
+                image = image.to(self.device)
                 steering_angles = steering_angles.to(self.device)
  
                 # Forward pass
-                outputs = model(images)
+                outputs = model(image)
                 loss = criterion(outputs, steering_angles)
  
                 # Compute accuracy
@@ -447,15 +447,16 @@ class PowerMode_autopilot:
 
             if (self.save_best_only) and (test_loss_avg < top_loss):
                 top_loss = test_loss_avg
+                print("saving model")
                 torch.save(model.state_dict(), 'model.pth')
-
+ 
 
 
         #############################################
 
 def main():
     autopilot = PowerMode_autopilot(data_path='your_data_path', learning_rate=1.0e-4, keep_prob=0.5, batch_size=40,
-                                    save_best_only=True, test_size=0.2, steps_per_epoch=2000, epochs=1)
+                                    save_best_only=True, test_size=0.2, steps_per_epoch=2000, epochs=3)
 
     data = autopilot.load_data()
 
