@@ -16,7 +16,7 @@ class PowerModeAutopilot(nn.Module):
         super(PowerModeAutopilot, self).__init__()
         #############################################
         """
-        VGG style model:
+        ResNet style model:
         2 convs (3x3, depth 64)
         pool
         2 convs (3x3, depth 128)
@@ -34,7 +34,6 @@ class PowerModeAutopilot(nn.Module):
         dropout layers?
         try vgg 19? that would turn the 3 convs into 4, may be too many params though!
         """
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         
         # Block 1
         self.conv11 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
@@ -375,7 +374,7 @@ class PowerMode_autopilot:
         # Loss Function
         criterion = nn.MSELoss()
         # Optimizer
-        optimizer = optim.SGD(model.parameters(), lr=0.001)
+        optimizer = optim.Adan(model.parameters(), lr=0.0001)
      
         # generate 
        
@@ -422,11 +421,11 @@ class PowerMode_autopilot:
                 
                 image, steering_angles = next(test_batches)
 
-                images = images.to(self.device)
+                image = image.to(self.device)
                 steering_angles = steering_angles.to(self.device)
  
                 # Forward pass
-                outputs = model(images)
+                outputs = model(image)
                 loss = criterion(outputs, steering_angles)
  
                 # Compute accuracy
