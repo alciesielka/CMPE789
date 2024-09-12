@@ -93,9 +93,9 @@ class PowerModeAutopilot(nn.Module):
         x = nn.functional.relu(self.conv43(x))
         x = self.pool(x)
         
-        print(x.size)
-        print(x.shape) # [batch size, channel num, h, w]
-        print(f"FULLY CONNECTED LAYER INPUT: {x.size(0)*x.size(1)*x.size(2)}")
+        # print(x.size)
+        # print(x.shape) # [batch size, channel num, h, w]
+        # print(f"FULLY CONNECTED LAYER INPUT: {x.size(0)*x.size(1)*x.size(2)}")
 
         # Flatten for fully connected layers
         # was  x = x.view(-1, x.size(0)*x.size(1)*x.size(2))  # -1 automatically considers batch size
@@ -126,7 +126,7 @@ class PowerMode_autopilot:
         self.test_size = test_size
         self.steps_per_epoch = steps_per_epoch
         self.epochs = epochs
-        self.device = torch.device('cuda1' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def load_data(self): # ADC
         """
@@ -340,10 +340,11 @@ class PowerMode_autopilot:
         :param is_training:
         :return:
         """
-        images = np.empty([self.batch_size, self.IMAGE_HEIGHT, self.IMAGE_WIDTH, self.IMAGE_CHANNELS])
-
-        steers = np.empty(self.batch_size)
+        
         while True:
+            images = np.empty([self.batch_size, self.IMAGE_HEIGHT, self.IMAGE_WIDTH, self.IMAGE_CHANNELS])
+            steers = np.empty(self.batch_size)
+
             i = 0
             for index in np.random.permutation(image_paths.shape[0]):
                 center, left, right = image_paths[index]
@@ -352,12 +353,15 @@ class PowerMode_autopilot:
                     image, steering_angle = self.augment(center, left, right, steering_angle)
                 else:
                     image = self.load_image(center)
+               # print(f"Batch Generator, Image: {type(image)}, shape: {image.shape}")
                 images[i] = self.preprocess(image)
 
                 steers[i] = steering_angle
                 i += 1
                 if i == self.batch_size:
                     break
+
+
             images = images.transpose((0, 3, 1, 2))
             images = torch.from_numpy(images).float().to(self.device)
             steers = torch.from_numpy(steers).float().unsqueeze(1).to(self.device)
@@ -381,23 +385,27 @@ class PowerMode_autopilot:
      
         # generate 
        
-        train_loader = self.batch_generator(X_train, y_train, True)
-        test_loader = self.batch_generator(X_valid, y_valid, False)
+        train_batches = self.batch_generator(X_train, y_train, True)
+        test_batches = self.batch_generator(X_valid, y_valid, False)
 
         top_loss =  float('inf')
+        train_batch_count = 0
 
         for epoch in range(self.epochs):
             model.train() # set model to training mode
             running_train_loss = 0.0
-            for images, steering_angles in train_loader:
-                print("in for loop")
-                print(images)
-                images = images.to(self.device)
+            for i in range(self.steps_per_epoch): # 100 steps per epoch
+            #for image, steering_angles in train_loader:
+                
+                image, steering_angles = next(train_batches)
+
+                image = image.to(self.device)
                 steering_angles = steering_angles.to(self.device)
 
                 # Forward pass
-                outputs = model(images) # how is this calling model.forward() PyTorch?
+                outputs = model(image) 
                 loss = criterion(outputs, steering_angles)
+               
 
                 # Backward and optimize
                 optimizer.zero_grad()  # Reset the gradients
@@ -405,34 +413,41 @@ class PowerMode_autopilot:
                 optimizer.step()  # Update model parameters
 
                 running_train_loss += loss.item()
+                train_batch_count += 1
+                torch.cuda.empty_cache()
 
-            train_loss_avg = running_train_loss / len(train_loader )
+            train_loss_avg = running_train_loss / train_batch_count
             print("Epoch: ", epoch, "Training Loss: ", train_loss_avg)
 
-            model.eval() # Set the model to evaluation mode
-            running_test_loss = 0.0
-            with torch.no_grad():
-                for images, steering_angles in test_loader :
-                    images = images.to(self.device)
-                    steering_angles = steering_angles.to(self.device)
- 
-                    # Forward pass
-                    outputs = model(images)
-                    loss = criterion(outputs, steering_angles)
- 
-                    # Compute accuracy
-                    _, predicted = torch.max(outputs.data, 1) # first return value is the max value
- 
-                    running_test_loss += loss.item()
-                    
+        model.eval() # Set the model to evaluation mode
+        running_test_loss = 0.0
+        test_batch_count = 0
+        with torch.no_grad():
+            for i in range(self.steps_per_epoch): # 100 steps per epoch
+            #for image, steering_angles in train_loader:
+                
+                image, steering_angles = next(test_batches)
 
-                # Calculate average loss and accuracy
-                test_loss_avg = running_test_loss / len(test_loader )
-                print("Epoch: ", epoch, "Training Loss: ", test_loss_avg)
+                images = images.to(self.device)
+                steering_angles = steering_angles.to(self.device)
+ 
+                # Forward pass
+                outputs = model(images)
+                loss = criterion(outputs, steering_angles)
+ 
+                # Compute accuracy
+                _, predicted = torch.max(outputs.data, 1) # first return value is the max value
+ 
+                running_test_loss += loss.item()
+                test_batch_count += 1
 
-                if (self.save_best_only) and (test_loss_avg < top_loss):
-                    top_loss = test_loss_avg
-                    torch.save(model.state_dict(), 'model.pth')
+            # Calculate average loss and accuracy
+            test_loss_avg = running_test_loss / test_batch_count
+            print("Running Validation Loss: ", test_loss_avg)
+
+            if (self.save_best_only) and (test_loss_avg < top_loss):
+                top_loss = test_loss_avg
+                torch.save(model.state_dict(), 'model.pth')
 
 
 
@@ -440,7 +455,7 @@ class PowerMode_autopilot:
 
 def main():
     autopilot = PowerMode_autopilot(data_path='your_data_path', learning_rate=1.0e-4, keep_prob=0.5, batch_size=40,
-                                    save_best_only=True, test_size=0.2, steps_per_epoch=2000, epochs=3)
+                                    save_best_only=True, test_size=0.2, steps_per_epoch=2000, epochs=1)
 
     data = autopilot.load_data()
 
