@@ -379,9 +379,9 @@ class PowerMode_autopilot:
         """
         #############################################    
         # Loss Function
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.MSELoss()
         # Optimizer
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
+        optimizer = optim.SGD(model.parameters(), lr=0.001)
      
         # generate 
        
