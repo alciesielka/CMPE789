@@ -155,7 +155,7 @@ class PowerMode_autopilot:
             direction_set.append(row[2])
             X_array.append(direction_set)
 
-            Y_array.append(row[6])
+            Y_array.append(row[3])
 
         # create numpy arrays
         X = np.array(X_array)
