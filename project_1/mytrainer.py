@@ -34,6 +34,7 @@ class PowerModeAutopilot(nn.Module):
         dropout layers?
         try vgg 19? that would turn the 3 convs into 4, may be too many params though!
         """
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         
         # Block 1
         self.conv11 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
