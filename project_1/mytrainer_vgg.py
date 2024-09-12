@@ -73,24 +73,18 @@ class PowerModeAutopilot(nn.Module):
     def forward(self, x):
         # Block 1
         x = nn.functional.relu(self.conv11(x))
-        x = nn.functional.relu(self.conv12(x))
         x = self.pool(x)
         
         # Block 2
         x = nn.functional.relu(self.conv21(x))
-        x = nn.functional.relu(self.conv22(x))
         x = self.pool(x)
         
         # Block 3
         x = nn.functional.relu(self.conv31(x))
-        x = nn.functional.relu(self.conv32(x))
-        x = nn.functional.relu(self.conv33(x))
         x = self.pool(x)
         
         # Block 4
         x = nn.functional.relu(self.conv41(x))
-        x = nn.functional.relu(self.conv42(x))
-        x = nn.functional.relu(self.conv43(x))
         x = self.pool(x)
         
         # print(x.size)
