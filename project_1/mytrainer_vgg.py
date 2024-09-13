@@ -16,23 +16,7 @@ class PowerModeAutopilot(nn.Module):
         super(PowerModeAutopilot, self).__init__()
         #############################################
         """
-        VGG style model:
-        2 convs (3x3, depth 64)
-        pool
-        2 convs (3x3, depth 128)
-        pool 
-        3 convs (^^, depth 256)
-        pool
-        3 convs (^^, depth 512)
-        pool
-        3 convs (^^, depth 512)
-        pool
-        fully connected layer 1, fully connected 2, softmax
-
-        
-        Other things we can try:
-        dropout layers?
-        try vgg 19? that would turn the 3 convs into 4, may be too many params though!
+        VGG-16 Model
         """
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         
@@ -60,10 +44,10 @@ class PowerModeAutopilot(nn.Module):
         self.conv53 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
         
         # Fully connected layers
-        self.fc1 = nn.Linear(512 * 4 * 12, 4096) # this also needs to be the same input at line 98
+        self.fc1 = nn.Linear(512 * 4 * 12, 4096) 
         # was 512 *3
         self.fc2 = nn.Linear(4096, 4096)
-        self.fc3 = nn.Linear(4096, 1)  # 1000 = num classes = ??
+        self.fc3 = nn.Linear(4096, 1) 
         
         # Dropout for regularization
         self.dropout = nn.Dropout(p=keep_prob)
@@ -93,12 +77,7 @@ class PowerModeAutopilot(nn.Module):
         x = nn.functional.relu(self.conv43(x))
         x = self.pool(x)
         
-        # print(x.size)
-        # print(x.shape) # [batch size, channel num, h, w]
-        # print(f"FULLY CONNECTED LAYER INPUT: {x.size(0)*x.size(1)*x.size(2)}")
-
         # Flatten for fully connected layers
-        # was  x = x.view(-1, x.size(0)*x.size(1)*x.size(2))  # -1 automatically considers batch size
         x = x.reshape(x.size(0), -1) 
         # Fully connected layers with dropout
         x = nn.functional.relu(self.fc1(x))
@@ -106,9 +85,6 @@ class PowerModeAutopilot(nn.Module):
         x = nn.functional.relu(self.fc2(x))
         x = self.dropout(x)
         x = self.fc3(x)
-        
-        # Softmax for classification
-        #x = nn.functional.softmax(x, dim=1)
         
         return x
         #############################################
@@ -353,9 +329,8 @@ class PowerMode_autopilot:
                     image, steering_angle = self.augment(center, left, right, steering_angle)
                 else:
                     image = self.load_image(center)
-               # print(f"Batch Generator, Image: {type(image)}, shape: {image.shape}")
-                images[i] = self.preprocess(image)
 
+                images[i] = self.preprocess(image)
                 steers[i] = steering_angle
                 i += 1
                 if i == self.batch_size:
@@ -384,7 +359,6 @@ class PowerMode_autopilot:
         optimizer = optim.Adam(model.parameters(), lr=0.0001)
      
         # generate 
-       
         train_batches = self.batch_generator(X_train, y_train, True)
         test_batches = self.batch_generator(X_valid, y_valid, False)
 
@@ -394,8 +368,7 @@ class PowerMode_autopilot:
         for epoch in range(self.epochs):
             model.train() # set model to training mode
             running_train_loss = 0.0
-            for i in range(self.steps_per_epoch): # 100 steps per epoch
-            #for image, steering_angles in train_loader:
+            for i in range(self.steps_per_epoch):
                 
                 image, steering_angles = next(train_batches)
 
@@ -423,8 +396,7 @@ class PowerMode_autopilot:
         running_test_loss = 0.0
         test_batch_count = 0
         with torch.no_grad():
-            for i in range(self.steps_per_epoch): # 100 steps per epoch
-            #for image, steering_angles in train_loader:
+            for i in range(self.steps_per_epoch):
                 
                 image, steering_angles = next(test_batches)
 
@@ -450,8 +422,6 @@ class PowerMode_autopilot:
                 print("saving model")
                 torch.save(model.state_dict(), 'model.pth')
  
-
-
         #############################################
 
 def main():
