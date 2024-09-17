@@ -1,2 +1,4 @@
 /model.pth
 *.pth
+/models
+driving_log.csv

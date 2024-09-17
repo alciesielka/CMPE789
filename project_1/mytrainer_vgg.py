@@ -17,22 +17,6 @@ class PowerModeAutopilot(nn.Module):
         #############################################
         """
         VGG style model:
-        2 convs (3x3, depth 64)
-        pool
-        2 convs (3x3, depth 128)
-        pool 
-        3 convs (^^, depth 256)
-        pool
-        3 convs (^^, depth 512)
-        pool
-        3 convs (^^, depth 512)
-        pool
-        fully connected layer 1, fully connected 2, softmax
-
-        
-        Other things we can try:
-        dropout layers?
-        try vgg 19? that would turn the 3 convs into 4, may be too many params though!
         """
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         
@@ -53,17 +37,11 @@ class PowerModeAutopilot(nn.Module):
         self.conv41 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
         self.conv42 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
         self.conv43 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-        
-        # Block 5: probably wont need
-        self.conv51 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-        self.conv52 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-        self.conv53 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-        
+  
         # Fully connected layers
-        self.fc1 = nn.Linear(512 * 4 * 12, 4096) # this also needs to be the same input at line 98
-        # was 512 *3
-        self.fc2 = nn.Linear(4096, 4096)
-        self.fc3 = nn.Linear(4096, 1)  # 1000 = num classes = ??
+        self.fc1 = nn.Linear(512 * 4 * 12, 500) 
+        self.fc2 = nn.Linear(500, 500)
+        self.fc3 = nn.Linear(500, 1)
         
         # Dropout for regularization
         self.dropout = nn.Dropout(p=keep_prob)
@@ -93,12 +71,6 @@ class PowerModeAutopilot(nn.Module):
         x = nn.functional.relu(self.conv43(x))
         x = self.pool(x)
         
-        # print(x.size)
-        # print(x.shape) # [batch size, channel num, h, w]
-        # print(f"FULLY CONNECTED LAYER INPUT: {x.size(0)*x.size(1)*x.size(2)}")
-
-        # Flatten for fully connected layers
-        # was  x = x.view(-1, x.size(0)*x.size(1)*x.size(2))  # -1 automatically considers batch size
         x = x.reshape(x.size(0), -1) 
         # Fully connected layers with dropout
         x = nn.functional.relu(self.fc1(x))
@@ -106,9 +78,6 @@ class PowerModeAutopilot(nn.Module):
         x = nn.functional.relu(self.fc2(x))
         x = self.dropout(x)
         x = self.fc3(x)
-        
-        # Softmax for classification
-        #x = nn.functional.softmax(x, dim=1)
         
         return x
         #############################################
@@ -381,7 +350,7 @@ class PowerMode_autopilot:
         # Loss Function
         criterion = nn.MSELoss()
         # Optimizer
-        optimizer = optim.Adam(model.parameters(), lr=0.0001)
+        optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
      
         # generate 
        
@@ -448,9 +417,7 @@ class PowerMode_autopilot:
             if (self.save_best_only) and (test_loss_avg < top_loss):
                 top_loss = test_loss_avg
                 print("saving model")
-                torch.save(model.state_dict(), '1024_vgg_3epochs.pth')
- 
-
+                torch.save(model.state_dict(), '500_vgg_3epochs.pth')
 
         #############################################
 
