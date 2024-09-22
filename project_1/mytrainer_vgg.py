@@ -37,11 +37,17 @@ class PowerModeAutopilot(nn.Module):
         self.conv41 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
         self.conv42 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
         self.conv43 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-  
+        
+        # Block 5: Not used in Forward Pass
+        self.conv51 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+        self.conv52 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+        self.conv53 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+        
         # Fully connected layers
         self.fc1 = nn.Linear(512 * 4 * 12, 500) 
+        # was 512 *3
         self.fc2 = nn.Linear(500, 500)
-        self.fc3 = nn.Linear(500, 1)
+        self.fc3 = nn.Linear(500, 1)  # 1000 = num classes = ??
         
         # Dropout for regularization
         self.dropout = nn.Dropout(p=keep_prob)
