@@ -28,23 +28,34 @@ def point_to_plane(source_points, target_points, target_normals):
  
 def compute_transformation(source_points, target_points):
     # Compute the optimal rotation matrix R and translation vector t that align source_points with matched_target_points
-    pass   
+    source_mean = np.mean(source_points)
+    target_mean = np.mean(target_points)
+    difference = target_mean - source_mean
+    h_matrix = np.dot(difference)
+    svd = np.linalg.svd(h_matrix)
+    R = np.dot(svd)
+    t = 0 # need to calculate t - TJS
     return R, t
 
-def apply_transformation(source_points, R, t):
+def apply_transformation(source_points, R, t): # Ready to test - T (ensure order of R and t is right)
     # Apply the rotation R and translation t to the source points
-    pass
+    rotated_points = np.dot(source_points, R)
+    new_source_points = rotated_points + t
     return new_source_points
 
-def compute_mean_distance(source, target):
+def compute_mean_distance(source, target): # ready to test - TJS
     # Compute the mean Euclidean distance between the source and the target
-    pass
+    mean_distance = np.mean(((target[0]-source[0])**2)+((target[1]-source[1])**2)+((target[2]-source[2])**2)**0.5)
     return mean_distance
 
-def calculate_mse(source_points, target_points):
+def calculate_mse(source_points, target_points): # ready to test, ensure source points is nx3 array - TJS
     # Follow the equation in slides 
     # You may find cKDTree.query function helpful to calculate distance between point clouds with different number of points
-    pass
+    print(source_points)
+    print(target_points)
+    tree = cKDTree(source_points)
+    distance, _ = tree.query(target_points)
+    mse = np.mean(distance**2)
     return mse
 
 
