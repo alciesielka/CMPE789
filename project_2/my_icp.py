@@ -35,21 +35,22 @@ def compute_transformation(source_points, target_points): # ready to test - TJS 
     target_mean = np.mean(target_points)
     source_difference = source_points - source_mean
     target_difference = target_points - target_mean
-    h_matrix = np.dot(source_difference, target_difference)
-    svd = np.linalg.svd(h_matrix) # this may be wrong -TJS
-    R = np.dot(svd) # this may also be wrong
-    t = target_mean - np.dot(R, source_mean)
+    h_matrix = np.dot(source_difference.T, target_difference)
+    U, _, V = np.linalg.svd(h_matrix)
+    R = np.dot(V, U.T)
+    t = -R*source_mean.T + target_mean.T
     return R, t
 
-def apply_transformation(source_points, R, t): # Ready to test - T (ensure order of R and t is right)
+def apply_transformation(source_points, R, t): # Ready to test - TJS
     # Apply the rotation R and translation t to the source points
-    rotated_points = np.dot(source_points, R)
+    rotated_points = np.dot(source_points.T, R)
     new_source_points = rotated_points + t
     return new_source_points
 
 def compute_mean_distance(source, target): # ready to test - TJS
     # Compute the mean Euclidean distance between the source and the target
     mean_distance = np.mean(((target[0]-source[0])**2)+((target[1]-source[1])**2)+((target[2]-source[2])**2)**0.5)
+    # mean_distance = np.mean(np.linalg.norm(source_points-target_points))
     return mean_distance
 
 def calculate_mse(source_points, target_points): # ready to test, ensure source points is nx3 array - TJS
