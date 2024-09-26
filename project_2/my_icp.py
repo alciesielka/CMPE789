@@ -19,15 +19,16 @@ def estimate_normals(points, k_neighbors=30): # ready to test - TJS
     Use open3d to do it, e.g. estimate_normals()
     k_neighbors: The number of nearest neighbors to consider when estimating normals (you can change the value)
     """
-    points = o3d.geometry.estimate_normals(search_param=KDTreeSearchParamKNN with knn = k_neighbors)
-    pass
+    normals_estimate = o3d.geometry.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(k_neighbors))
+    return normals_estimate
 
 def normal_shooting(source_points, source_normals, target_points, target_normals):
     pass
 
-def point_to_plane(source_points, target_points, target_normals):
-    pass
- 
+def point_to_plane(source_points, target_points, target_normals): # ready to test (ensure equation!) - TJS
+    p2pl_error = min(np.sum(((source_points - target_points)*target_normals)**2))
+    return p2pl_error
+
 def compute_transformation(source_points, target_points): # ready to test - TJS (I keep seeing .T be used with np.dot, investigate)
     # Compute the optimal rotation matrix R and translation vector t that align source_points with matched_target_points
     source_mean = np.mean(source_points)
