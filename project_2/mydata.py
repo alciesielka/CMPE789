@@ -1,29 +1,82 @@
 import carla
 import numpy as np
-
+import time
 
 def save_ply_file(file, points):
     with open(file, 'w') as f:
         f.write("ply\n")
-        f.write("format ascii 1.0\n")
+        f.write("format ascii 1.0\n")  # Use ASCII format instead of binary
         f.write(f"element vertex {len(points)}\n")
         f.write("property float x\n")
         f.write("property float y\n")
         f.write("property float z\n")
+        f.write("property uchar red\n")
+        f.write("property uchar green\n")
+        f.write("property uchar blue\n")
         f.write("end_header\n")
+        # Assuming a default color for each point, you can modify this based on your needs
         for point in points:
-            f.write(f"{point[0]} {point[1]} {point[2]}\n")
+            min_z = -3.0
+            max_z = 3.0
+            x, y, z = point
+            # Example: Color based on the height (z coordinate)
+            # Normalize z to be within 0-255 for color
+            z_normalized = (z - min_z) / (max_z - min_z)  # Adjust min_z and max_z based on your environment
 
+            # Ensure normalization is within 0 to 1
+            z_normalized = min(max(z_normalized, 0), 1)
 
-def lidar_callback(data):   
+            # Create a color gradient from blue (0, 0, 255) to red (255, 0, 0)
+            r = int(z_normalized * 255)  # Red component increases with height
+            g = 0                         # Green component remains zero
+            b = int((1 - z_normalized) * 255)
+
+            f.write(f"{x} {y} {z} {r} {g} {b}\n")
+
+def lidar_callback(data, points):   
+    print("LiDAR data received.")
     # Extract point cloud data
     point_cloud = np.frombuffer(data.raw_data, dtype=np.float32)
     point_cloud = point_cloud.reshape((-1, 4))  # Each point has x, y, z, intensity
-    points = point_cloud[:, :3]  # Keep only x, y, z
+    new_points = point_cloud[:, :3]  # Keep only x, y, z
 
-    # Save to PLY file
-    save_ply_file('test_output.ply', points)
+    # Save to PLY file'
+    points.extend(new_points.tolist())  # Collect points
 
+def get_vehicle_position(vehicle):
+    """Get and print the current position of the vehicle."""
+    transform = vehicle.get_transform()  
+    location = transform.location        
+    
+    # Vehicle's position on the map
+    x = location.x
+    y = location.y
+    z = location.z
+
+    print(f"Vehicle Position -> X: {x}, Y: {y}, Z: {z}")
+    return location
+
+def set_spectator_view(world, vehicle):
+    """Set the spectator camera to follow the vehicle."""
+    spectator = world.get_spectator()  
+    transform = vehicle.get_transform()  
+    
+    # Position the camera behind and slightly above the vehicle
+    spectator_location = transform.location + carla.Location(x=-10, z=5)  # Behind and above the vehicle
+    spectator_transform = carla.Transform(spectator_location, transform.rotation)
+    
+    spectator.set_transform(spectator_transform)
+    print("Spectator camera set to follow the vehicle.")
+
+
+def move_vehicle(vehicle):
+    """Apply throttle to move the vehicle forward."""
+    control = carla.VehicleControl()
+    control.throttle = 0.5  # Apply 50% throttle to move forward
+    control.steer = 0.0     # No steering (move straight)
+    control.brake = 0.0     # No brake
+    vehicle.apply_control(control)
+    print("Vehicle moving forward with 50% throttle.")
 
 def main():
     client = carla.Client('localhost', 2000)
@@ -32,26 +85,48 @@ def main():
 
     # spawn a vehicle
     blueprint_library = world.get_blueprint_library()
-    vehicle_blueprint = blueprint_library.find('vehicle.testla.model3')
+    vehicle_blueprint = blueprint_library.find('vehicle.audi.a2')
     sp = world.get_map().get_spawn_points()[0]
     vehicle = world.spawn_actor(vehicle_blueprint, sp)
-
+    print("Vehicle spawned successfully.")
     # attach lidar sensor
     lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
+    lidar_bp.set_attribute('channels', '32')
     lidar_bp.set_attribute('points_per_second', '50000')
     lidar_bp.set_attribute('range', '100')
+    lidar_bp.set_attribute('rotation_frequency', '10')
+
     lidar_spawn_point = carla.Transform(carla.Location(x=0, z=2))  # Adjust height
     lidar = world.spawn_actor(lidar_bp, lidar_spawn_point, attach_to=vehicle)
 
     # Listen for LiDAR data
-    lidar.listen(lidar_callback)
+    points = []
+    lidar.listen(lambda data: lidar_callback(data, points))
+
 
     try:
-        while True:
-            world.tick()  # Update the simulation
+        print("Simulation running for 30 seconds...")
+        start_time = time.time()
+
+        # Run the simulation for 5 seconds
+        while time.time() - start_time < 10:
+            world.tick()  # Keep the simulation running
+            get_vehicle_position(vehicle)  # Optionally, print vehicle's position
+            set_spectator_view(world, vehicle)  # Update the spectator camera to follow the vehicle
+            # Move the vehicle forward
+            move_vehicle(vehicle)
+            time.sleep(0.1)  # Small delay to allow smooth camera movement
+
+
     finally:
+        # Clean up actors after 5 seconds
+        if points: 
+            save_ply_file('test_output.ply', points)
+            print("Point cloud data saved to PLY file.")
         vehicle.destroy()
         lidar.destroy()
+        print("Vehicle and LiDAR destroyed.")
+        print("Simulation terminated gracefully.")
 
 if __name__ == '__main__':
     main()

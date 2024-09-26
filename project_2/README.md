@@ -7,7 +7,7 @@ What to get
 - Carla 9.14.0 Package from Github
 - 8GB VRAM
 
-1. In integrated temrinal run: 
+1. In integrated terminal run: 
     - pip install --user pygame numpy
 2. Extract Carla 9.14.0 to a folder
 3. Add the .whl file to Carla\PythonAPI\Carla\dist
