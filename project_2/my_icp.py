@@ -26,8 +26,9 @@ def normal_shooting(source_points, source_normals, target_points, target_normals
     # similar to point to plane, find normal and then intersection between another point cloud and based on the intersection we'll find closest point to intersection.
     # calculate intersection and then find closest point
     # normal is vertical vector orientation (use estimate_normals)
-    matched_target_points = min(np.sum(((source_points - target_points)*target_normals*source_normals)**2))
-    return matched_target_points
+    matched_target_points = min(np.sum(source_normals - target_points))
+    matched_source_points = min(np.sum(target_normals - source_points))
+    return matched_source_points, matched_target_points
     
 def point_to_plane(source_points, target_points, target_normals): # ready to test (ensure equation!) - TJS
     matched_target_points = min(np.sum(((source_points - target_points)*target_normals)**2))
