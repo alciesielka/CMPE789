@@ -6,7 +6,7 @@ def load_ply(file_path): # ready to test -TJS
     # Load a .ply file using open3d as an numpy.array
     pcd = o3d.io.read_point_cloud(file_path)
     point_cloud = np.asarray(pcd.points) # adc changed pdc to pcd.points
-    return point_cloud
+    return point_cloud, pcd
 
 def find_closest_points(source_points, target_points):
     print("finding closest points")
@@ -21,7 +21,7 @@ def estimate_normals(points, k_neighbors=30): # ready to test - TJS
     k_neighbors: The number of nearest neighbors to consider when estimating normals (you can change the value)
     """
     print("estimating normals")
-    normals_estimate = o3d.geometry.estimate_normals(points, search_param=o3d.geometry.KDTreeSearchParamKNN(k_neighbors))
+    normals_estimate = points.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(k_neighbors))
     print(f"normals estimate {normals_estimate}")
     return normals_estimate
 
@@ -72,7 +72,7 @@ def compute_transformation(source_points, target_points): # ready to test - TJS 
 def apply_transformation(source_points, R, t): # Ready to test - TJS
     # Apply the rotation R and translation t to the source points
     print("applying transform")
-    rotated_points = np.dot(source_points.T, R) # adc fact check transformation .T source_points.T, R
+    rotated_points = np.dot(source_points, R.T) # adc fact check transformation .T source_points.T, R
     new_source_points = rotated_points + t
     return new_source_points
 
@@ -93,7 +93,7 @@ def calculate_mse(source_points, target_points): # ready to test, ensure source 
     return mse
 
 
-def icp(source_points, target_points, max_iterations=100, tolerance=1e-6, R_init=None, t_init=None, strategy="closest_point"):
+def icp(source_points,  source_pcd, target_points, target_pcd,  max_iterations=100, tolerance=1e-6, R_init=None, t_init=None, strategy="closest_point"):
     # Apply initial guess if provided
     if R_init is not None and t_init is not None:
         source_points = apply_transformation(source_points, R_init, t_init)
@@ -108,8 +108,8 @@ def icp(source_points, target_points, max_iterations=100, tolerance=1e-6, R_init
             pass
 
         elif strategy == 'normal_shooting':
-            source_normals = estimate_normals(source_points)
-            target_normals = estimate_normals(target_points)
+            source_normals = estimate_normals(source_pcd)
+            target_normals = estimate_normals(target_pcd)
             # fix what comes out
             matched_target_points = normal_shooting(source_points, target_points, source_normals, target_normals)
             pass
@@ -139,10 +139,10 @@ if __name__ == "__main__":
     source_file = 'project_2\\test_case\\v1.ply'
     target_file = 'project_2\\test_case\\v2.ply'
     output_file = 'project_2\\test_case\\merged.ply'
-    strategy = "closest_point"
+    strategy = "normal_shooting"
     
-    source_points = load_ply(source_file)
-    target_points = load_ply(target_file)
+    source_points, source_pcd = load_ply(source_file)
+    target_points, target_pcd = load_ply(target_file)
     
     # Initial guess (modifiable) # good initial guess is important, feel free to go higher
     # if we do our own data, we can get our initial guess from the ground truth on that and input it here for the original tests!
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     t_init = np.array([0, 0, 0])
     
     print("Starting ICP...")
-    R, t, aligned_source_points = icp(source_points, target_points, R_init=R_init, t_init=t_init, strategy=strategy)
+    R, t, aligned_source_points = icp(source_points, source_pcd, target_points, target_pcd, R_init=R_init, t_init=t_init, strategy=strategy)
     
     print("ICP completed.")
     print("Rotation Matrix:")
