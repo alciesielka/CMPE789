@@ -9,6 +9,7 @@ def load_ply(file_path): # ready to test -TJS
     return point_cloud
 
 def find_closest_points(source_points, target_points):
+    print("finding closest points")
     # Align points in the souce and target point cloud data
     kdtree = cKDTree(target_points)
     distances, indices = kdtree.query(source_points)
@@ -19,6 +20,7 @@ def estimate_normals(points, k_neighbors=30): # ready to test - TJS
     Use open3d to do it, e.g. estimate_normals()
     k_neighbors: The number of nearest neighbors to consider when estimating normals (you can change the value)
     """
+    print("estimating normals")
     normals_estimate = o3d.geometry.estimate_normals(points, search_param=o3d.geometry.KDTreeSearchParamKNN(k_neighbors))
     print(f"normals estimate {normals_estimate}")
     return normals_estimate
@@ -39,24 +41,39 @@ def point_to_plane(source_points, target_points, target_normals): # ready to tes
 
 def compute_transformation(source_points, target_points): # ready to test - TJS (I keep seeing .T be used with np.dot, investigate)
     # Compute the optimal rotation matrix R and translation vector t that align source_points with matched_target_points
-    source_mean = np.mean(source_points)
-    target_mean = np.mean(target_points)
+    print("computing transform")
+    source_mean = np.mean(source_points, axis = 1)
+    target_mean = np.mean(target_points, axis = 1)
+
+    source_mean = source_mean.reshape(-1, 1)
+    target_mean = target_mean.reshape(-1, 1)
+
     source_difference = source_points - source_mean
     target_difference = target_points - target_mean
-    h_matrix = np.dot(source_difference.T, target_difference)
-    U, _, V = np.linalg.svd(h_matrix)
-    R = np.dot(V, U.T)
-    t = -R*source_mean.T + target_mean.T
+    
+    print(f"source diff: {source_difference.shape}\n target diff: {target_difference.shape}")
+    H = source_difference @ np.transpose(target_difference)
+    
+    # h_matrix = np.dot(source_difference, target_difference.T)
+    U, _, V = np.linalg.svd(H)
+
+    R = V @ U.T
+    # t = target_mean - (R * source_mean)
+    t = -R @ source_mean + target_mean
+
+    print(f"R: {R.shape}\n t: {t.shape}")
     return R, t
 
 def apply_transformation(source_points, R, t): # Ready to test - TJS
     # Apply the rotation R and translation t to the source points
+    print("applying transform")
     rotated_points = np.dot(source_points, R.T) # adc fact check transformation .T source_points.T, R
     new_source_points = rotated_points + t
     return new_source_points
 
 def compute_mean_distance(source, target): # ready to test - TJS
     # Compute the mean Euclidean distance between the source and the target
+    print("computing mean distance")
     mean_distance = np.mean(((target[0]-source[0])**2)+((target[1]-source[1])**2)+((target[2]-source[2])**2)**0.5)
     return mean_distance
 
@@ -114,10 +131,10 @@ def icp(source_points, target_points, max_iterations=100, tolerance=1e-6, R_init
     return R, t, aligned_source_points
 
 if __name__ == "__main__":
-    source_file = 'project_2/test_case/v1.ply'
-    target_file = 'project_2/test_case/v2.ply'
-    output_file = 'merged.ply'
-    strategy = ""
+    source_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\v1.ply'
+    target_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\v2.ply'
+    output_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\merged.ply'
+    strategy = "closest_point"
     
     source_points = load_ply(source_file)
     target_points = load_ply(target_file)
