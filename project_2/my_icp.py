@@ -39,27 +39,32 @@ def point_to_plane(source_points, target_points, target_normals): # ready to tes
 
     return matched_target_points
 
+# adc think okay
 def compute_transformation(source_points, target_points): # ready to test - TJS (I keep seeing .T be used with np.dot, investigate)
     # Compute the optimal rotation matrix R and translation vector t that align source_points with matched_target_points
     print("computing transform")
-    source_mean = np.mean(source_points, axis = 1)
-    target_mean = np.mean(target_points, axis = 1)
+    # Compute centroids
+    source_mean = np.mean(source_points, axis = 0) # axis = 1 calculates per point (row), not per dimesnion (column) with is axis =0
+    target_mean = np.mean(target_points, axis = 0) # to get center of point in 3d space
 
-    source_mean = source_mean.reshape(-1, 1)
-    target_mean = target_mean.reshape(-1, 1)
-
+    # Center points
     source_difference = source_points - source_mean
     target_difference = target_points - target_mean
     
     print(f"source diff: {source_difference.shape}\n target diff: {target_difference.shape}")
-    H = source_difference @ np.transpose(target_difference)
+    # Compute Covariance matrix
+    H = source_difference.T @ target_difference
     
     # h_matrix = np.dot(source_difference, target_difference.T)
     U, _, V = np.linalg.svd(H)
 
-    R = V @ U.T
-    # t = target_mean - (R * source_mean)
-    t = -R @ source_mean + target_mean
+    R = V.T @ U.T
+    # check if determinant = -1 (reflection), so multiply last column by -1 to get det(r)= 1
+    if np.linalg.det(R) < 0:
+        V[-1, :] *= -1
+        R = V.T @ U.T
+
+    t = target_mean - R @ source_mean
 
     print(f"R: {R.shape}\n t: {t.shape}")
     return R, t
@@ -67,7 +72,7 @@ def compute_transformation(source_points, target_points): # ready to test - TJS 
 def apply_transformation(source_points, R, t): # Ready to test - TJS
     # Apply the rotation R and translation t to the source points
     print("applying transform")
-    rotated_points = np.dot(source_points, R.T) # adc fact check transformation .T source_points.T, R
+    rotated_points = np.dot(source_points.T, R) # adc fact check transformation .T source_points.T, R
     new_source_points = rotated_points + t
     return new_source_points
 
@@ -131,9 +136,9 @@ def icp(source_points, target_points, max_iterations=100, tolerance=1e-6, R_init
     return R, t, aligned_source_points
 
 if __name__ == "__main__":
-    source_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\v1.ply'
-    target_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\v2.ply'
-    output_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\merged.ply'
+    source_file = 'project_2\\test_case\\v1.ply'
+    target_file = 'project_2\\test_case\\v2.ply'
+    output_file = 'project_2\\test_case\\merged.ply'
     strategy = "closest_point"
     
     source_points = load_ply(source_file)
