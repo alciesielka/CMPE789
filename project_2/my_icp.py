@@ -19,19 +19,22 @@ def estimate_normals(points, k_neighbors=30): # ready to test - TJS
     Use open3d to do it, e.g. estimate_normals()
     k_neighbors: The number of nearest neighbors to consider when estimating normals (you can change the value)
     """
-    normals_estimate = o3d.geometry.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(k_neighbors))
+    normals_estimate = o3d.geometry.estimate_normals(points, search_param=o3d.geometry.KDTreeSearchParamKNN(k_neighbors))
+    print(f"normals estimate {normals_estimate}")
     return normals_estimate
 
 def normal_shooting(source_points, source_normals, target_points, target_normals): # ready to test but I think this equation is wrong - TJS
     # similar to point to plane, find normal and then intersection between another point cloud and based on the intersection we'll find closest point to intersection.
     # calculate intersection and then find closest point
     # normal is vertical vector orientation (use estimate_normals)
-    matched_target_points = min(np.sum(source_normals - target_points))
-    matched_source_points = min(np.sum(target_normals - source_points))
-    return matched_source_points, matched_target_points
+    indices = find_closest_points(source_normals, target_normals)
+    matched_target_points = target_points[indices]
+    
+    return matched_target_points
     
 def point_to_plane(source_points, target_points, target_normals): # ready to test (ensure equation!) - TJS
     matched_target_points = min(np.sum(((source_points - target_points)*target_normals)**2))
+
     return matched_target_points
 
 def compute_transformation(source_points, target_points): # ready to test - TJS (I keep seeing .T be used with np.dot, investigate)
