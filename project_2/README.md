@@ -15,3 +15,8 @@ What to get
 4. Return to root of package 
     -  CarlaUE4.exe
 5. Ensure Carla does not crash :/
+
+# Running Carla
+1. Navigate to file location
+2. Run in terminal: 
+    .\CarlaUE4
