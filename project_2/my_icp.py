@@ -4,7 +4,7 @@ from scipy.spatial import cKDTree
 
 def load_ply(file_path): # ready to test -TJS
     # Load a .ply file using open3d as an numpy.array
-    pcd = o3d.io.read_point_cloud("v1.ply")
+    pcd = o3d.io.read_point_cloud(file_path)
     point_cloud = np.asarray(pcd)
     return point_cloud
 
@@ -110,8 +110,8 @@ def icp(source_points, target_points, max_iterations=100, tolerance=1e-6, R_init
     return R, t, aligned_source_points
 
 if __name__ == "__main__":
-    source_file = 'source.ply'
-    target_file = 'target.ply'
+    source_file = 'project_2/test_case/v1.ply'
+    target_file = 'project_2/test_case/v2.ply'
     output_file = 'merged.ply'
     strategy = ""
     
