@@ -5,7 +5,7 @@ from scipy.spatial import cKDTree
 def load_ply(file_path): # ready to test -TJS
     # Load a .ply file using open3d as an numpy.array
     pcd = o3d.io.read_point_cloud(file_path)
-    point_cloud = np.asarray(pcd)
+    point_cloud = np.asarray(pcd.points) # adc changed pdc to pcd.points
     return point_cloud
 
 def find_closest_points(source_points, target_points):
@@ -47,7 +47,7 @@ def compute_transformation(source_points, target_points): # ready to test - TJS 
 
 def apply_transformation(source_points, R, t): # Ready to test - TJS
     # Apply the rotation R and translation t to the source points
-    rotated_points = np.dot(source_points.T, R)
+    rotated_points = np.dot(source_points, R.T) # adc fact check transformation .T source_points.T, R
     new_source_points = rotated_points + t
     return new_source_points
 
