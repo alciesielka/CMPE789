@@ -9,7 +9,6 @@ def load_ply(file_path): # ready to test -TJS
     return point_cloud, pcd
 
 def find_closest_points(source_points, target_points):
-    print("finding closest points")
     # Align points in the souce and target point cloud data
     kdtree = cKDTree(target_points)
     distances, indices = kdtree.query(source_points)
@@ -20,10 +19,9 @@ def estimate_normals(points, k_neighbors=30): # ready to test - TJS
     Use open3d to do it, e.g. estimate_normals()
     k_neighbors: The number of nearest neighbors to consider when estimating normals (you can change the value)
     """
-    print("estimating normals")
-    normals_estimate = points.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(k_neighbors))
-    print(f"normals estimate {normals_estimate}")
-    return normals_estimate
+    points.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(k_neighbors))
+    point_norms = points.normals
+    return point_norms
 
 def normal_shooting(source_points, source_normals, target_points, target_normals): # ready to test but I think this equation is wrong - TJS
     # similar to point to plane, find normal and then intersection between another point cloud and based on the intersection we'll find closest point to intersection.
@@ -35,14 +33,13 @@ def normal_shooting(source_points, source_normals, target_points, target_normals
     return matched_target_points
     
 def point_to_plane(source_points, target_points, target_normals): # ready to test (ensure equation!) - TJS
-    matched_target_points = min(np.sum(((source_points - target_points)*target_normals)**2))
-
+    indicies = min(np.sum(((target_points - source_points) @ target_normals)**2))
+    matched_target_points = target_points[indicies]
     return matched_target_points
 
 # adc think okay
 def compute_transformation(source_points, target_points): # ready to test - TJS (I keep seeing .T be used with np.dot, investigate)
     # Compute the optimal rotation matrix R and translation vector t that align source_points with matched_target_points
-    print("computing transform")
     # Compute centroids
     source_mean = np.mean(source_points, axis = 0) # axis = 1 calculates per point (row), not per dimesnion (column) with is axis =0
     target_mean = np.mean(target_points, axis = 0) # to get center of point in 3d space
@@ -50,8 +47,7 @@ def compute_transformation(source_points, target_points): # ready to test - TJS 
     # Center points
     source_difference = source_points - source_mean
     target_difference = target_points - target_mean
-    
-    print(f"source diff: {source_difference.shape}\n target diff: {target_difference.shape}")
+
     # Compute Covariance matrix
     H = source_difference.T @ target_difference
     
@@ -65,21 +61,17 @@ def compute_transformation(source_points, target_points): # ready to test - TJS 
         R = V.T @ U.T
 
     t = target_mean - R @ source_mean
-
-    print(f"R: {R.shape}\n t: {t.shape}")
     return R, t
 
 def apply_transformation(source_points, R, t): # Ready to test - TJS
     # Apply the rotation R and translation t to the source points
-    print("applying transform")
     rotated_points = np.dot(source_points, R.T) # adc fact check transformation .T source_points.T, R
     new_source_points = rotated_points + t
     return new_source_points
 
 def compute_mean_distance(source, target): # ready to test - TJS
     # Compute the mean Euclidean distance between the source and the target
-    print("computing mean distance")
-    mean_distance = np.mean(((target[0]-source[0])**2)+((target[1]-source[1])**2)+((target[2]-source[2])**2)**0.5)
+    mean_distance = np.mean((((source[0]-target[0])**2)+((source[1]-target[1])**2)+((source[2]-target[2])**2))**0.5)
     return mean_distance
 
 def calculate_mse(source_points, target_points): # ready to test, ensure source points is nx3 array - TJS
@@ -87,13 +79,13 @@ def calculate_mse(source_points, target_points): # ready to test, ensure source 
     # You may find cKDTree.query function helpful to calculate distance between point clouds with different number of points
     print(source_points)
     print(target_points)
-    tree = cKDTree(source_points)
-    distance, _ = tree.query(target_points)
+    tree = cKDTree(target_points)
+    distance, _ = tree.query(source_points)
     mse = np.mean(distance**2)
     return mse
 
 
-def icp(source_points,  source_pcd, target_points, target_pcd,  max_iterations=100, tolerance=1e-6, R_init=None, t_init=None, strategy="closest_point"):
+def icp(source_points, source_pcd, target_points, target_pcd,  max_iterations=100, tolerance=1e-6, R_init=None, t_init=None, strategy="closest_point"):
     # Apply initial guess if provided
     if R_init is not None and t_init is not None:
         source_points = apply_transformation(source_points, R_init, t_init)
@@ -111,11 +103,11 @@ def icp(source_points,  source_pcd, target_points, target_pcd,  max_iterations=1
             source_normals = estimate_normals(source_pcd)
             target_normals = estimate_normals(target_pcd)
             # fix what comes out
-            matched_target_points = normal_shooting(source_points, target_points, source_normals, target_normals)
+            matched_target_points = normal_shooting(source_points, source_normals, target_points, target_normals)
             pass
 
         elif strategy == "point-to-plane":
-            target_normals = estimate_normals(target_points)
+            target_normals = estimate_normals(target_pcd)
             matched_target_points= point_to_plane(source_points, target_points, target_normals)
             pass
 
@@ -131,23 +123,24 @@ def icp(source_points,  source_pcd, target_points, target_pcd,  max_iterations=1
             print(f"ICP converged gracefully at {i+1} iterations")
             return R, t, aligned_source_points
     
-        aligned_source_points = source_points
+        source_points = aligned_source_points
+
     print(f"ICP did not converge gracefully after {max_iterations} iterations")
     return R, t, aligned_source_points
 
 if __name__ == "__main__":
-    source_file = 'project_2\\test_case\\v1.ply'
-    target_file = 'project_2\\test_case\\v2.ply'
-    output_file = 'project_2\\test_case\\merged.ply'
-    strategy = "normal_shooting"
+    source_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\v1.ply'
+    target_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\v2.ply'
+    output_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\merged.ply'
+    strategy = "point-to-plane"
     
     source_points, source_pcd = load_ply(source_file)
     target_points, target_pcd = load_ply(target_file)
     
     # Initial guess (modifiable) # good initial guess is important, feel free to go higher
     # if we do our own data, we can get our initial guess from the ground truth on that and input it here for the original tests!
-    R_init = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-    t_init = np.array([0, 0, 0])
+    R_init = np.array([[1, 0, 1], [0, 1, 0], [0, 0, 1]])
+    t_init = np.array([1, 0, .5])
     
     print("Starting ICP...")
     R, t, aligned_source_points = icp(source_points, source_pcd, target_points, target_pcd, R_init=R_init, t_init=t_init, strategy=strategy)
