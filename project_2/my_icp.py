@@ -23,24 +23,53 @@ def estimate_normals(points, k_neighbors=30): # ready to test - TJS
     point_norms = points.normals
     return point_norms
 
-def normal_shooting(source_points, source_normals, target_points, target_normals): # ready to test but I think this equation is wrong - TJS
+def normal_shooting(source_points, target_points, target_normals): # ready to test but I think this equation is wrong - TJS
     # similar to point to plane, find normal and then intersection between another point cloud and based on the intersection we'll find closest point to intersection.
     # calculate intersection and then find closest point
-    # normal is vertical vector orientation (use estimate_normals)
-    indices = find_closest_points(source_normals, target_normals)
-    matched_target_points = target_points[indices]
+    # normal is vertical vector orientation (use estimate_normals)]\
+
+    matched_target_points = []
+
+    # Nearest neighbor tree of target points
+    kdtree = cKDTree(target_points)
     
-    return matched_target_points
+    # loop through each point
+    for i in range(source_points.shape[0]):
+        source_point = source_points[i]
+
+        _, closest_index = kdtree.query(source_point) # initial guess for i
+        target_normal = target_normals[closest_index] # grab from target normal
+        
+        ray_direction = target_normal / np.linalg.norm(target_normal) # # Normalize the normal vector (unit vector) (scale to 1) ie get direction not magnitude
+        projected_point = source_point + ray_direction * 0.1 # move source point in direction of target normal
+        
+        _, final_index = kdtree.query(projected_point) # Find the closest point in the target cloud to the projected point
+        matched_target_points.append(target_points[final_index])
+    
+    return np.array(matched_target_points)
     
 def point_to_plane(source_points, target_points, target_normals): # ready to test (ensure equation!) - TJS
-    indicies = min(np.sum(((target_points - source_points) @ target_normals)**2))
-    matched_target_points = target_points[indicies]
-    return matched_target_points
+    # indicies = np.argmin(np.sum(((matched_target_points - source_points) * matched_target_normals) ** 2, axis=1))
+    # indicies = min(np.sum(((target_points - source_points) @ target_normals)**2))
+
+    indices = find_closest_points(source_points, target_points)
+
+    matched_target_points = target_points[indices]
+    
+    target_normals_np = np.asarray(target_normals)
+    matched_target_normals = target_normals_np[indices]
+
+    
+    dist = np.sum((matched_target_points - source_points) * matched_target_normals, axis =1)
+    projected = source_points + dist[:, np.newaxis] * matched_target_normals
+    
+    return projected
 
 # adc think okay
 def compute_transformation(source_points, target_points): # ready to test - TJS (I keep seeing .T be used with np.dot, investigate)
     # Compute the optimal rotation matrix R and translation vector t that align source_points with matched_target_points
     # Compute centroids
+    print("computing transform")
     source_mean = np.mean(source_points, axis = 0) # axis = 1 calculates per point (row), not per dimesnion (column) with is axis =0
     target_mean = np.mean(target_points, axis = 0) # to get center of point in 3d space
 
@@ -100,10 +129,9 @@ def icp(source_points, source_pcd, target_points, target_pcd,  max_iterations=10
             pass
 
         elif strategy == 'normal_shooting':
-            source_normals = estimate_normals(source_pcd)
             target_normals = estimate_normals(target_pcd)
             # fix what comes out
-            matched_target_points = normal_shooting(source_points, source_normals, target_points, target_normals)
+            matched_target_points = normal_shooting(source_points, target_points, target_normals)
             pass
 
         elif strategy == "point-to-plane":
@@ -129,9 +157,9 @@ def icp(source_points, source_pcd, target_points, target_pcd,  max_iterations=10
     return R, t, aligned_source_points
 
 if __name__ == "__main__":
-    source_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\v1.ply'
-    target_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\v2.ply'
-    output_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\merged.ply'
+    source_file = 'project_2\\test_case\\v1.ply'
+    target_file = 'project_2\\test_case\\v2.ply'
+    output_file = 'project_2\\test_case\\merged.ply'
     strategy = "point-to-plane"
     
     source_points, source_pcd = load_ply(source_file)
