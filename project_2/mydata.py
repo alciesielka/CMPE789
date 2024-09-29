@@ -94,7 +94,7 @@ def main():
     vehicle_transform = vehicle.get_transform()
     vehicle2_blueprint = blueprint_library.find('vehicle.audi.a2')
     sp2_location = vehicle_transform.location + carla.Location(x=-40)  # 20 meters behind the first vehicle
-    sp2_transform = carla.Transform(sp2_location, vehicle.get_transform().rotation)  # Same rotation as first vehicle
+
     sp2 = carla.Transform(carla.Location(x=sp.location.x - 15, y=sp.location.y, z=sp.location.z), sp.rotation)
     vehicle2 = world.spawn_actor(vehicle2_blueprint, sp2)
     print("Vehicle2 spawned successfully.")

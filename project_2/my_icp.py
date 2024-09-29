@@ -129,7 +129,7 @@ def icp(source_points, source_pcd, target_points, target_pcd,  max_iterations=10
             pass
 
         elif strategy == 'normal_shooting':
-            target_normals = estimate_normals(target_pcd)
+            target_normals = estimate_normals(target_pcd, 30)
             # fix what comes out
             matched_target_points = normal_shooting(source_points, target_points, target_normals)
             pass
@@ -160,16 +160,24 @@ if __name__ == "__main__":
     source_file = 'project_2\\test_case\\v1.ply'
     target_file = 'project_2\\test_case\\v2.ply'
     output_file = 'project_2\\test_case\\merged.ply'
+
+    # # Merge 3 ply
+    # source_file = 'project_2\\test_case\\v3.ply'
+    # target_file = 'project_2\\test_case\\merged.ply'
+    # output_file = 'project_2\\test_case\\merged2.ply'
+
     strategy = "point-to-plane"
     
     source_points, source_pcd = load_ply(source_file)
     target_points, target_pcd = load_ply(target_file)
     
     # Initial guess (modifiable) # good initial guess is important, feel free to go higher
-    # if we do our own data, we can get our initial guess from the ground truth on that and input it here for the original tests!
-    R_init = np.array([[1, 0, 1], [0, 1, 0], [0, 0, 1]])
-    t_init = np.array([1, 0, .5])
-    
+    # if we do our own data, we can get our initial guess from the ground truth on that and input it here for the original tests
+    R_init = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    t_init = np.array([0.08569717, 4.11087036, 0.02476001]) # calculated from data usinng AABB
+ 
+
+
     print("Starting ICP...")
     R, t, aligned_source_points = icp(source_points, source_pcd, target_points, target_pcd, R_init=R_init, t_init=t_init, strategy=strategy)
     
@@ -195,5 +203,7 @@ if __name__ == "__main__":
     source_pcd_aligned.points = o3d.utility.Vector3dVector(aligned_source_points)
     
     target_pcd = o3d.io.read_point_cloud(target_file)
-    o3d.visualization.draw_geometries([source_pcd_aligned.paint_uniform_color([0, 0, 1]), target_pcd.paint_uniform_color([1, 0, 0])],
+    # o3d.visualization.draw_geometries([source_pcd_aligned.paint_uniform_color([0, 0, 1]), target_pcd.paint_uniform_color([1, 0, 0])],
+    #                                   window_name='ICP Visualization')
+    o3d.visualization.draw_geometries([source_pcd_aligned, target_pcd],
                                       window_name='ICP Visualization')
