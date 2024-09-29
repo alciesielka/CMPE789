@@ -14,12 +14,11 @@ def save_ply_file(file, points):
         f.write("property uchar green\n")
         f.write("property uchar blue\n")
         f.write("end_header\n")
-        # Assuming a default color for each point, you can modify this based on your needs
+
         for point in points:
             min_z = -3.0
             max_z = 3.0
             x, y, z = point
-            # Example: Color based on the height (z coordinate)
             # Normalize z to be within 0-255 for color
             z_normalized = (z - min_z) / (max_z - min_z)  # Adjust min_z and max_z based on your environment
 
@@ -43,25 +42,11 @@ def lidar_callback(data, points):
     # Save to PLY file'
     points.extend(new_points.tolist())  # Collect points
 
-def get_vehicle_position(vehicle):
-    """Get and print the current position of the vehicle."""
-    transform = vehicle.get_transform()  
-    location = transform.location        
-    
-    # Vehicle's position on the map
-    x = location.x
-    y = location.y
-    z = location.z
-
-    print(f"Vehicle Position -> X: {x}, Y: {y}, Z: {z}")
-    return location
 
 def set_spectator_view(world, vehicle):
-    """Set the spectator camera to follow the vehicle."""
     spectator = world.get_spectator()  
     transform = vehicle.get_transform()  
     
-    # Position the camera behind and slightly above the vehicle
     spectator_location = transform.location + carla.Location(x=-10, z=5)  # Behind and above the vehicle
     spectator_transform = carla.Transform(spectator_location, transform.rotation)
     
@@ -70,13 +55,12 @@ def set_spectator_view(world, vehicle):
 
 
 def move_vehicle(vehicle):
-    """Apply throttle to move the vehicle forward."""
     control = carla.VehicleControl()
     control.throttle = 0.5  # Apply 50% throttle to move forward
     control.steer = 0.0     # No steering (move straight)
     control.brake = 0.0     # No brake
     vehicle.apply_control(control)
-    print("Vehicle moving forward with 50% throttle.")
+    print("Vehicle moving.")
 
 def main():
     client = carla.Client('localhost', 2000)
@@ -91,9 +75,7 @@ def main():
     print("Vehicle spawned successfully.")
 
     # spwn vehicle two
-    vehicle_transform = vehicle.get_transform()
     vehicle2_blueprint = blueprint_library.find('vehicle.audi.a2')
-    sp2_location = vehicle_transform.location + carla.Location(x=-40)  # 20 meters behind the first vehicle
 
     sp2 = carla.Transform(carla.Location(x=sp.location.x - 15, y=sp.location.y, z=sp.location.z), sp.rotation)
     vehicle2 = world.spawn_actor(vehicle2_blueprint, sp2)
@@ -133,7 +115,7 @@ def main():
             world.tick()  # Keep the simulation running
             
             set_spectator_view(world, vehicle)  # Update the spectator camera to follow the vehicle
-            # Move the vehicle forward
+    
             move_vehicle(vehicle)
             move_vehicle(vehicle2)
 
@@ -142,7 +124,6 @@ def main():
 
 
     finally:
-        # Clean up actors after 5 seconds
         if points: 
             save_ply_file('test_output.ply', points)
             print("Point cloud data saved to PLY file.")
