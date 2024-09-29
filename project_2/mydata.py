@@ -89,7 +89,18 @@ def main():
     sp = world.get_map().get_spawn_points()[0]
     vehicle = world.spawn_actor(vehicle_blueprint, sp)
     print("Vehicle spawned successfully.")
-    # attach lidar sensor
+
+    # spwn vehicle two
+    vehicle_transform = vehicle.get_transform()
+    vehicle2_blueprint = blueprint_library.find('vehicle.audi.a2')
+    sp2_location = vehicle_transform.location + carla.Location(x=-40)  # 20 meters behind the first vehicle
+    sp2_transform = carla.Transform(sp2_location, vehicle.get_transform().rotation)  # Same rotation as first vehicle
+    sp2 = carla.Transform(carla.Location(x=sp.location.x - 15, y=sp.location.y, z=sp.location.z), sp.rotation)
+    vehicle2 = world.spawn_actor(vehicle2_blueprint, sp2)
+    print("Vehicle2 spawned successfully.")
+
+
+    # attach lidar sensor to vehicle 1
     lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
     lidar_bp.set_attribute('channels', '32')
     lidar_bp.set_attribute('points_per_second', '50000')
@@ -103,18 +114,30 @@ def main():
     points = []
     lidar.listen(lambda data: lidar_callback(data, points))
 
+    # attach lidar sensor to vehicle 2
+    lidar2_spawn_point = carla.Transform(carla.Location(x=0, z=2))  # Adjust height
+    lidar2 = world.spawn_actor(lidar_bp, lidar2_spawn_point, attach_to=vehicle2)
+
+    # Listen for LiDAR data
+    points2 = []
+    lidar2.listen(lambda data: lidar_callback(data, points2))
+
+
 
     try:
         print("Simulation running for 30 seconds...")
         start_time = time.time()
 
         # Run the simulation for 5 seconds
-        while time.time() - start_time < 10:
+        while time.time() - start_time < 5:
             world.tick()  # Keep the simulation running
-            get_vehicle_position(vehicle)  # Optionally, print vehicle's position
+            
             set_spectator_view(world, vehicle)  # Update the spectator camera to follow the vehicle
             # Move the vehicle forward
             move_vehicle(vehicle)
+            move_vehicle(vehicle2)
+
+
             time.sleep(0.1)  # Small delay to allow smooth camera movement
 
 
@@ -123,8 +146,14 @@ def main():
         if points: 
             save_ply_file('test_output.ply', points)
             print("Point cloud data saved to PLY file.")
+
+        if points2: 
+            save_ply_file('test2_output.ply', points2)
+            print("Point2 cloud data saved to PLY file.")
         vehicle.destroy()
         lidar.destroy()
+        vehicle2.destroy()
+        lidar2.destroy()
         print("Vehicle and LiDAR destroyed.")
         print("Simulation terminated gracefully.")
 
