@@ -166,7 +166,7 @@ if __name__ == "__main__":
     # target_file = 'project_2\\test_case\\merged.ply'
     # output_file = 'project_2\\test_case\\merged2.ply'
 
-    strategy = "point-to-plane"
+    strategy = "normal_shooting"
     
     source_points, source_pcd = load_ply(source_file)
     target_points, target_pcd = load_ply(target_file)
@@ -174,8 +174,8 @@ if __name__ == "__main__":
     # Initial guess (modifiable) # good initial guess is important, feel free to go higher
     # if we do our own data, we can get our initial guess from the ground truth on that and input it here for the original tests
     R_init = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-    t_init = np.array([0.08569717, 4.11087036, 0.02476001]) # calculated from data usinng AABB
- 
+    # x- 40 y -30, closest_point = 1.64
+    t_init = np.array([ 2.8049202,  -0.57039642, -0.59802568])
 
 
     print("Starting ICP...")

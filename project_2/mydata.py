@@ -77,7 +77,7 @@ def main():
     # spwn vehicle two
     vehicle2_blueprint = blueprint_library.find('vehicle.audi.a2')
 
-    sp2 = carla.Transform(carla.Location(x=sp.location.x - 15, y=sp.location.y, z=sp.location.z), sp.rotation)
+    sp2 = carla.Transform(carla.Location(x=sp.location.x - 40, y=sp.location.y - 10, z=sp.location.z), sp.rotation)
     vehicle2 = world.spawn_actor(vehicle2_blueprint, sp2)
     print("Vehicle2 spawned successfully.")
 
@@ -125,11 +125,11 @@ def main():
 
     finally:
         if points: 
-            save_ply_file('test_output.ply', points)
+            save_ply_file('test_output_x_40_y_10.ply', points)
             print("Point cloud data saved to PLY file.")
 
         if points2: 
-            save_ply_file('test2_output.ply', points2)
+            save_ply_file('test2_output_x_40_y_10.ply', points2)
             print("Point2 cloud data saved to PLY file.")
         vehicle.destroy()
         lidar.destroy()
