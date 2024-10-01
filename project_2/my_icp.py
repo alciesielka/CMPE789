@@ -106,15 +106,14 @@ def compute_mean_distance(source, target): # ready to test - TJS
 def calculate_mse(source_points, target_points): # ready to test, ensure source points is nx3 array - TJS
     # Follow the equation in slides 
     # You may find cKDTree.query function helpful to calculate distance between point clouds with different number of points
-    print(source_points)
-    print(target_points)
+
     tree = cKDTree(target_points)
     distance, _ = tree.query(source_points)
     mse = np.mean(distance**2)
     return mse
 
 
-def icp(source_points, source_pcd, target_points, target_pcd,  max_iterations=100, tolerance=1e-6, R_init=None, t_init=None, strategy="closest_point"):
+def icp(source_points, source_pcd, target_points, target_pcd,  max_iterations=300, tolerance=1e-6, R_init=None, t_init=None, strategy="closest_point"):
     # Apply initial guess if provided
     if R_init is not None and t_init is not None:
         source_points = apply_transformation(source_points, R_init, t_init)
@@ -147,6 +146,8 @@ def icp(source_points, source_pcd, target_points, target_pcd,  max_iterations=10
         aligned_source_points = apply_transformation(source_points, R, t)
         mean_dist = compute_mean_distance(aligned_source_points, matched_target_points)
 
+        mse = calculate_mse(aligned_source_points, matched_target_points)
+        print(f'iter {i} MSE {mse}')
         if mean_dist < tolerance:
             print(f"ICP converged gracefully at {i+1} iterations")
             return R, t, aligned_source_points
@@ -161,12 +162,12 @@ if __name__ == "__main__":
     target_file = 'project_2\\test_case\\v2.ply'
     output_file = 'project_2\\test_case\\merged.ply'
 
-    # # Merge 3 ply
-    # source_file = 'project_2\\test_case\\v3.ply'
-    # target_file = 'project_2\\test_case\\merged.ply'
-    # output_file = 'project_2\\test_case\\merged2.ply'
+    # Merge 3 ply
+    source_file = 'project_2\\test_case\\v3.ply'
+    target_file = 'project_2\\test_case\\merged.ply'
+    output_file = 'project_2\\test_case\\merged2.ply'
 
-    strategy = "normal_shooting"
+    strategy = "closest_point"
     
     source_points, source_pcd = load_ply(source_file)
     target_points, target_pcd = load_ply(target_file)
@@ -175,17 +176,15 @@ if __name__ == "__main__":
     # if we do our own data, we can get our initial guess from the ground truth on that and input it here for the original tests
     R_init = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     # x- 40 y -30, closest_point = 1.64
-    t_init = np.array([ 2.8049202,  -0.57039642, -0.59802568])
+    #t_init = np.array([ 2.8049202,  -0.57039642, 0])
+    t_init = np.array([ 36,  -35, 0]) # use this as first t_init
+    #t_init = np.array([ -80,  20, 0])
 
+    t_init = np.array([ -10,  5, 0]) # use this as second t_init
 
     print("Starting ICP...")
     R, t, aligned_source_points = icp(source_points, source_pcd, target_points, target_pcd, R_init=R_init, t_init=t_init, strategy=strategy)
     
-    print("ICP completed.")
-    print("Rotation Matrix:")
-    print(R)
-    print("Translation Vector:")
-    print(t)
     mse = calculate_mse(aligned_source_points, target_points)
     print(f"Mean Squared Error (MSE): {mse}")
     

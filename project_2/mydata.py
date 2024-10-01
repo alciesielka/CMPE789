@@ -10,6 +10,20 @@ def save_ply_file(file, points):
         f.write("property float x\n")
         f.write("property float y\n")
         f.write("property float z\n")
+        f.write("end_header\n")
+
+        for point in points:
+            x, y, z = point
+            f.write(f"{x} {y} {z}\n")
+
+    # try with top        
+    with open(file, 'w') as f:
+        f.write("ply\n")
+        f.write("format ascii 1.0\n")  # Use ASCII format instead of binary
+        f.write(f"element vertex {len(points)}\n")
+        f.write("property float x\n")
+        f.write("property float y\n")
+        f.write("property float z\n")
         f.write("property uchar red\n")
         f.write("property uchar green\n")
         f.write("property uchar blue\n")
@@ -20,8 +34,7 @@ def save_ply_file(file, points):
             max_z = 3.0
             x, y, z = point
             # Normalize z to be within 0-255 for color
-            z_normalized = (z - min_z) / (max_z - min_z)  # Adjust min_z and max_z based on your environment
-
+            z_normalized = (z - min_z) / (max_z - min_z)
             # Ensure normalization is within 0 to 1
             z_normalized = min(max(z_normalized, 0), 1)
 
