@@ -5,32 +5,16 @@ import time
 def save_ply_file(file, points):
     with open(file, 'w') as f:
         f.write("ply\n")
-        f.write("format ascii 1.0\n")  # Use ASCII format instead of binary
+        f.write("format ascii 1.0\n")  
         f.write(f"element vertex {len(points)}\n")
         f.write("property float x\n")
         f.write("property float y\n")
         f.write("property float z\n")
-        f.write("property uchar red\n")
-        f.write("property uchar green\n")
-        f.write("property uchar blue\n")
         f.write("end_header\n")
 
-        for point in points:
-            min_z = -3.0
-            max_z = 3.0
-            x, y, z = point
-            # Normalize z to be within 0-255 for color
-            z_normalized = (z - min_z) / (max_z - min_z)  # Adjust min_z and max_z based on your environment
-
-            # Ensure normalization is within 0 to 1
-            z_normalized = min(max(z_normalized, 0), 1)
-
-            # Create a color gradient from blue (0, 0, 255) to red (255, 0, 0)
-            r = int(z_normalized * 255)  # Red component increases with height
-            g = 0                         # Green component remains zero
-            b = int((1 - z_normalized) * 255)
-
-            f.write(f"{x} {y} {z} {r} {g} {b}\n")
+        for p in points:
+            x, y, z = p
+            f.write(f"{x} {y} {z}\n")
 
 def lidar_callback(data, points):   
     print("LiDAR data received.")
@@ -77,7 +61,8 @@ def main():
     # spwn vehicle two
     vehicle2_blueprint = blueprint_library.find('vehicle.audi.a2')
 
-    sp2 = carla.Transform(carla.Location(x=sp.location.x - 40, y=sp.location.y - 10, z=sp.location.z), sp.rotation)
+    sp2 = carla.Transform(carla.Location(x=sp.location.x - 5, y=sp.location.y + 0,
+                                          z=sp.location.z), sp.rotation)
     vehicle2 = world.spawn_actor(vehicle2_blueprint, sp2)
     print("Vehicle2 spawned successfully.")
 
@@ -125,11 +110,11 @@ def main():
 
     finally:
         if points: 
-            save_ply_file('test_output_x_40_y_10.ply', points)
+            save_ply_file('output_x_N5_y.ply', points)
             print("Point cloud data saved to PLY file.")
 
         if points2: 
-            save_ply_file('test2_output_x_40_y_10.ply', points2)
+            save_ply_file('output2_x_N5_y.ply', points2)
             print("Point2 cloud data saved to PLY file.")
         vehicle.destroy()
         lidar.destroy()
