@@ -167,7 +167,7 @@ if __name__ == "__main__":
     target_file = 'project_2\\test_case\\merged.ply'
     output_file = 'project_2\\test_case\\merged2.ply'
 
-    strategy = "closest_point"
+    strategy = "point-to-plane"
     
     source_points, source_pcd = load_ply(source_file)
     target_points, target_pcd = load_ply(target_file)
@@ -175,13 +175,9 @@ if __name__ == "__main__":
     # Initial guess (modifiable) # good initial guess is important, feel free to go higher
     # if we do our own data, we can get our initial guess from the ground truth on that and input it here for the original tests
     R_init = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-    # x- 40 y -30, closest_point = 1.64
-    #t_init = np.array([ 2.8049202,  -0.57039642, 0])
-    t_init = np.array([ 36,  -35, 0]) # use this as first t_init
-    #t_init = np.array([ -80,  20, 0])
+    #t_init = np.array([ 15,  -15, 0]) # for first merge
 
-    t_init = np.array([ -10,  5, 0]) # use this as second t_init
-
+    t_init = np.array([ -5,  0, 0]) # second merge
     print("Starting ICP...")
     R, t, aligned_source_points = icp(source_points, source_pcd, target_points, target_pcd, R_init=R_init, t_init=t_init, strategy=strategy)
     
