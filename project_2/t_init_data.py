@@ -8,8 +8,8 @@ def load_ply(file_path): # ready to test -TJS
     point_cloud = np.asarray(pcd.points)
     return point_cloud, pcd
 
-source_file = 'test2_output_x_30_y_30.ply' # my output from Carla simulationn
-target_file = 'test_output_x_30_y_30.ply'
+source_file = 'output_x_15_y_N15.ply' # my output from Carla simulationn
+target_file = 'output3_x_15_y_N15.ply'
 source_points, source_pcd = load_ply(source_file)
 target_points, target_pcd = load_ply(target_file)
 
