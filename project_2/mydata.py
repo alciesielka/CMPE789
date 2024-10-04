@@ -5,16 +5,17 @@ import time
 def save_ply_file(file, points):
     with open(file, 'w') as f:
         f.write("ply\n")
-        f.write("format ascii 1.0\n")  
+        f.write("format ascii 1.0\n")  # Use ASCII format instead of binary
         f.write(f"element vertex {len(points)}\n")
         f.write("property float x\n")
         f.write("property float y\n")
         f.write("property float z\n")
         f.write("end_header\n")
 
-        for p in points:
-            x, y, z = p
+        for point in points:
+            x, y, z = point
             f.write(f"{x} {y} {z}\n")
+
 
 def lidar_callback(data, points):   
     print("LiDAR data received.")
@@ -61,10 +62,18 @@ def main():
     # spwn vehicle two
     vehicle2_blueprint = blueprint_library.find('vehicle.audi.a2')
 
-    sp2 = carla.Transform(carla.Location(x=sp.location.x - 5, y=sp.location.y + 0,
+    sp2 = carla.Transform(carla.Location(x=sp.location.x + 15, y=sp.location.y - 15,
                                           z=sp.location.z), sp.rotation)
     vehicle2 = world.spawn_actor(vehicle2_blueprint, sp2)
     print("Vehicle2 spawned successfully.")
+    
+    # spwn vehicle two
+    vehicle3_blueprint = blueprint_library.find('vehicle.audi.a2')
+
+    sp3 = carla.Transform(carla.Location(x=sp.location.x - 5, y=sp.location.y + 0,
+                                          z=sp.location.z), sp.rotation)
+    vehicle3 = world.spawn_actor(vehicle3_blueprint, sp3)
+    print("Vehicle3 spawned successfully.")
 
 
     # attach lidar sensor to vehicle 1
@@ -82,17 +91,21 @@ def main():
     lidar.listen(lambda data: lidar_callback(data, points))
 
     # attach lidar sensor to vehicle 2
-    lidar2_spawn_point = carla.Transform(carla.Location(x=0, z=2))  # Adjust height
-    lidar2 = world.spawn_actor(lidar_bp, lidar2_spawn_point, attach_to=vehicle2)
+    lidar2 = world.spawn_actor(lidar_bp, lidar_spawn_point, attach_to=vehicle2)
 
     # Listen for LiDAR data
     points2 = []
     lidar2.listen(lambda data: lidar_callback(data, points2))
 
+    # attach lidar sensor to vehicle 3
+    lidar3 = world.spawn_actor(lidar_bp, lidar_spawn_point, attach_to=vehicle3)
 
+    # Listen for LiDAR data
+    points3 = []
+    lidar3.listen(lambda data: lidar_callback(data, points3))
 
     try:
-        print("Simulation running for 30 seconds...")
+        print("Simulation running for 5 seconds...")
         start_time = time.time()
 
         # Run the simulation for 5 seconds
@@ -103,6 +116,7 @@ def main():
     
             move_vehicle(vehicle)
             move_vehicle(vehicle2)
+            move_vehicle(vehicle3)
 
 
             time.sleep(0.1)  # Small delay to allow smooth camera movement
@@ -110,16 +124,21 @@ def main():
 
     finally:
         if points: 
-            save_ply_file('output_x_N5_y.ply', points)
+            save_ply_file('3_vehicle1.ply', points)
             print("Point cloud data saved to PLY file.")
 
         if points2: 
-            save_ply_file('output2_x_N5_y.ply', points2)
+            save_ply_file('3_vechicle2.ply', points2)
             print("Point2 cloud data saved to PLY file.")
+        if points3:
+            save_ply_file('3_vehicle3.ply', points2)
+            print("Point3 cloud data saved to PLY file.")
         vehicle.destroy()
         lidar.destroy()
         vehicle2.destroy()
         lidar2.destroy()
+        vehicle3.destroy()
+        lidar3.destroy()
         print("Vehicle and LiDAR destroyed.")
         print("Simulation terminated gracefully.")
 
