@@ -2,4 +2,3 @@
 *.pth
 /models
 driving_log.csv
-*.ply
