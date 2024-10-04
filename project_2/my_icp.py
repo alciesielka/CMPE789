@@ -32,18 +32,13 @@ def normal_shooting(source_points, target_points, target_normals):
     kdtree = cKDTree(target_points)
     
     # Loop through each point
-    for i in range(source_points.shape[0]):
-        source_point = source_points[i]
-
+    for source_point in source_points:
         # Identify initial source guess 
         _, closest_index = kdtree.query(source_point)
         
-        target_normal = target_normals[closest_index]
-        # Normalize target normal to get direction instead of magnitude
-        ray_direction = target_normal / np.linalg.norm(target_normal)
-        # Move source point in direction of target normal
-        projected_point = source_point + ray_direction * 0.1 
-        # Find the closest point in the target cloud to the projected point
+        target_normal = target_normals[closest_index] # Normalize target normal to get direction instead of magnitude
+        ray_direction = target_normal / np.linalg.norm(target_normal) # Move source point in direction of target normal
+        projected_point = source_point + ray_direction * 0.1 # Find the closest point in the target cloud to the projected point
         _, final_index = kdtree.query(projected_point)
         matched_target_points.append(target_points[final_index])
     
@@ -66,7 +61,6 @@ def point_to_plane(source_points, target_points, target_normals):
 
 def compute_transformation(source_points, target_points):
     # Compute rotation matrix R and translation vector t that align source_points with matched_target_points
-    print("computing transform")
     source_mean = np.mean(source_points, axis = 0)
     target_mean = np.mean(target_points, axis = 0) 
 
@@ -136,8 +130,6 @@ def icp(source_points, source_pcd, target_points, target_pcd,  max_iterations=30
         aligned_source_points = apply_transformation(source_points, R, t)
         mean_dist = compute_mean_distance(aligned_source_points, matched_target_points)
 
-        mse = calculate_mse(aligned_source_points, matched_target_points)
-        print(f'iter {i} MSE {mse}')
         if mean_dist < tolerance:
             print(f"ICP converged gracefully at {i+1} iterations")
             return R, t, aligned_source_points
@@ -148,26 +140,53 @@ def icp(source_points, source_pcd, target_points, target_pcd,  max_iterations=30
     return R, t, aligned_source_points
 
 if __name__ == "__main__":
-    # Easy example merge
-    # source_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\v1.ply'
-    # target_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\v2.ply'
-    # output_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\merged.ply'
-
-    # Merge 3 ply
-    source_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\v3.ply'
-    target_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\merged.ply'
-    output_file = 'C:\\Users\\tiann\\robot_perception\\CMPE789\\project_2\\test_case\\merged2.ply'
-
-    strategy = "point-to-plane"
+  
+  
+    source_file = 'project_2\\test_case\\v1.ply'
+    target_file = 'project_2\\test_case\\v2.ply'
+    output_file = 'project_2\\test_case\\merged.ply'
+    strategy = "closest_point"
     
     source_points, source_pcd = load_ply(source_file)
     target_points, target_pcd = load_ply(target_file)
     
-    # Initial guess (modifiable) - different for easy vs hard example
+    # Initial guess (modifiable) # good initial guess is important, feel free to go higher
+    # if we do our own data, we can get our initial guess from the ground truth on that and input it here for the original tests
     R_init = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-    # t_init = np.array([ 15,  -15, 0]) # for first merge
-    t_init = np.array([ -5,  0, 0]) # second merge
+    t_init = np.array([ 15,  -15, 0]) # for first merge
 
+    print("Starting ICP...")
+    R, t, aligned_source_points = icp(source_points, source_pcd, target_points, target_pcd, R_init=R_init, t_init=t_init, strategy=strategy)
+    
+    mse = calculate_mse(aligned_source_points, target_points)
+    print(f"Mean Squared Error (MSE): {mse}")
+    
+    # Combine aligned source and target points
+    combined_points = np.vstack((aligned_source_points, target_points))
+    combined_pcd = o3d.geometry.PointCloud()
+    combined_pcd.points = o3d.utility.Vector3dVector(combined_points)
+    
+    # Save
+    o3d.io.write_point_cloud(output_file, combined_pcd)
+    print(f"Combined point cloud saved to '{output_file}'")
+    
+
+
+    # Merge 3 ply
+    source_file = 'project_2\\test_case\\v3.ply'
+    target_file = 'project_2\\test_case\\merged.ply'
+    output_file = 'project_2\\test_case\\merged2.ply'
+
+    strategy = "closest_point"
+    
+    source_points, source_pcd = load_ply(source_file)
+    target_points, target_pcd = load_ply(target_file)
+    
+    # Initial guess (modifiable) # good initial guess is important, feel free to go higher
+    # if we do our own data, we can get our initial guess from the ground truth on that and input it here for the original tests
+    R_init = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
+    t_init = np.array([ -5,  0, 0]) # second merge
     print("Starting ICP...")
     R, t, aligned_source_points = icp(source_points, source_pcd, target_points, target_pcd, R_init=R_init, t_init=t_init, strategy=strategy)
     
@@ -189,6 +208,4 @@ if __name__ == "__main__":
     
     target_pcd = o3d.io.read_point_cloud(target_file)
     o3d.visualization.draw_geometries([source_pcd_aligned.paint_uniform_color([0, 0, 1]), target_pcd.paint_uniform_color([1, 0, 0])],
-                                      window_name='ICP Visualization')
-    # o3d.visualization.draw_geometries([source_pcd_aligned, target_pcd],
-    #                                   window_name='ICP Visualization')
+                                       window_name='ICP Visualization')
