@@ -65,13 +65,6 @@ def fine_tune(model):
     return params_to_optimize
 
 
-def fine_tune_rcnn():
-     model = fasterrcnn_resnet50_fpn # is a placeholder and needs to be fixed - T
-     for param in model.backbone.parameters():
-          param.requires_grad = False
-          params_to_optimize = [p for p in model.parameters() if p.requires_grad]
-
-
 if __name__ == '__main__':
     pass
     # do stuff here
