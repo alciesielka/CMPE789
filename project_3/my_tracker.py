@@ -44,7 +44,6 @@ def parse_gt_file(file_path):
        pass
    return data
 
-
 # data augmentation
 def augment_data(original_image):
     color_aug = transforms.Compose([
@@ -66,7 +65,24 @@ def fine_tune(model):
     return params_to_optimize
 
 
+def fine_tune_rcnn():
+     model = fasterrcnn_resnet50_fpn # is a placeholder and needs to be fixed - T
+     for param in model.backbone.parameters():
+          param.requires_grad = False
+          params_to_optimize = [p for p in model.parameters() if p.requires_grad]
+
 
 if __name__ == '__main__':
     pass
     # do stuff here
+
+
+'''
+STEPS:
+1) load data
+2) augment data
+3) fine tune pretrained model (rcnn) on MOTS?
+4) train siamese network 
+5) create tracking pipeline
+
+'''
