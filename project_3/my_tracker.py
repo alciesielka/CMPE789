@@ -77,5 +77,4 @@ STEPS:
 3) fine tune pretrained model (rcnn) on MOTS?
 4) train siamese network 
 5) create tracking pipeline
-
 '''
