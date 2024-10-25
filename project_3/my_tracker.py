@@ -53,6 +53,6 @@ STEPS:
 1) load data
 2) augment data
 3) fine tune pretrained model (rcnn) on MOTS?
-4) train siamese network 
+4) pass info from rcnn and train siamese network 
 5) create tracking pipeline
 '''
