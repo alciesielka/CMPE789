@@ -1,58 +1,69 @@
-import numpy as np
-import torchvision
-from pycocotools import mask as mask_utils # pip install pycocotools
-from sklearn.model_selection import train_test_split
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+#from pycocotools import mask as mask_utils # pip install pycocotools
 from torchvision import transforms
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+from PIL import Image
 
-
-# data preparation
-def decode_rle(encoded_mask, height, width):
-   binary_mask = mask_utils.decode(encoded_mask)
-   decoded_mask = np.array(binary_mask).reshape(height, width)
-   return decoded_mask
-
+    
 def parse_gt_file(file_path):
-   data_arr = []
-   data = {
-       'time_frame':[],
-       'object_id':[],
-       'class_id':[],
-       'image_height':[],
-       'image_width':[],
-       'rle':[]
-   }
-   # may use dictionary? - TJS
-   with open(file_path, 'r') as file:
-       for line in file:
-           # will create a 2D array where each line has its own set 
-           data_arr[line] = line.strip().split()
-           for item_num in range(0, len(data_arr[line])):
-                if item_num != len(data_arr): # may need to do len -1? - TJS
-                    data[item_num].append(data_arr[line][item_num])
-                else:
-                   decoded_mask = decode_rle(data_arr[line][item_num])
-                   data[item_num].append(decoded_mask)                       
-   return data
+    gt_data = []
+    with open(file_path, 'r') as f:
+        for line in f:
+            # Split the line by commas and strip whitespace
+            parts = line.strip().split(',')
+            # Ensure there are at least 8 elements in the line
+            if len(parts) < 8:
+                continue  # Skip incomplete lines
 
-# data augmentation
+            frame_id = int(parts[0])  # Frame number
+            obj_id = int(parts[1])     # ID
+            bb_left = int(parts[2])     # BB left
+            bb_top = int(parts[3])      # BB top
+            bb_width = int(parts[4])    # BB width
+            bb_height = int(parts[5])   # BB height
+            conf = float(parts[6])       # Confidence
+
+            # X and Y coordinates, need to hgandle float
+            x = float(parts[7]) if len(parts) > 7 else 0.0  
+            y = float(parts[8]) if len(parts) > 8 else 0.0  
+
+            gt_data.append({
+                'frame_id': frame_id,
+                'object_id': obj_id,
+                'bb_left': bb_left,
+                'bb_top': bb_top,
+                'bb_width': bb_width,
+                'bb_height': bb_height,
+                'conf': conf,  # FLOAT!
+                'x': x,
+                'y': y
+            })
+    return gt_data
+
+
+def prepare_data(gt_data, image_folder, frame_id):
+    image_path = f"{image_folder}/{str(frame_id).zfill(6)}.jpg"
+    image = Image.open(image_path).convert("RGB")
+
+    # Extract objects for the specific frame
+    frame_objects = [obj for obj in gt_data if obj['frame_id'] == frame_id]
+
+    boxes = []
+    for obj in frame_objects:
+        # Extract bounding box coordinates
+        xmin = obj['bb_left']
+        ymin = obj['bb_top']
+        xmax = xmin + obj['bb_width']
+        ymax = ymin + obj['bb_height']
+        boxes.append([xmin, ymin, xmax, ymax])
+    
+    return image, boxes
+
 def augment_data(original_image):
-    color_aug = transforms.Compose([
+    augmentation = transforms.Compose([
         transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
-        transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomRotation(degrees=15),
+        transforms.RandomResizedCrop(size=(original_image.height, original_image.width), scale=(0.8, 1.0))
     ])
-    augmented_image = color_aug(original_image)
+    
+    augmented_image = augmentation(original_image)
     return augmented_image
-
-def split_data():
-    pass
-
-def main():
-    pass
-
-if __name__ == "__main__":
-    main()

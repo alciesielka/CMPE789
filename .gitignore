@@ -2,3 +2,5 @@
 *.pth
 /models
 driving_log.csv
+
+/project_3/MOT16-02
