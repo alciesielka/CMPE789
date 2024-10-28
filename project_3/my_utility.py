@@ -50,6 +50,7 @@ def prepare_data(gt_data, image_folder, frame_id):
     frame_objects = [obj for obj in gt_data if obj['frame_id'] == frame_id]
 
     boxes = []
+    labels = []
     for obj in frame_objects:
         # Extract bounding box coordinates
         xmin = obj['bb_left']
@@ -57,9 +58,10 @@ def prepare_data(gt_data, image_folder, frame_id):
         xmax = xmin + obj['bb_width']
         ymax = ymin + obj['bb_height']
         boxes.append([xmin, ymin, xmax, ymax])
+        labels.append(obj['object_id'])
     
     boxes = np.array(boxes)
-    return image, boxes
+    return image, boxes, labels
 
 def augment_data(original_image):
     augmentation = transforms.Compose([

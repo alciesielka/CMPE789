@@ -32,6 +32,9 @@ if __name__ == '__main__':
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     num_epochs = 3
 
+    transform = T.ToTensor()
+
+
     gt_data = parse_gt_file(gt_file_path)
 
     frame_ids = sorted(set(obj['frame_id'] for obj in gt_data))
@@ -40,32 +43,24 @@ if __name__ == '__main__':
     
     for epoch in range(num_epochs):
         model.train()
-
+        model = model.to(device)
         for frame_id in frame_ids:
             print(frame_id)
         
             # image will be the same for each pass of frame_id, iterate through bboxes
 
-            image, boxes = prepare_data(gt_data, image_folder, frame_id)
-            print(boxes)
-            transform = T.ToTensor()
-            image_transformed = transform(image)
-            
-            image_cuda = [image_transformed.to(device)]
-            
+            image, boxes, labels = prepare_data(gt_data, image_folder, frame_id)
+        
+            image_cuda = [transform(image).to(device)]
 
-            # below is broken
+            box_tensor = torch.tensor(boxes, dtype=torch.float32).to(device)
+            label_tensor = torch.tensor(labels, dtype=torch.int64).to(device)
+            targets = [{"boxes" : box_tensor, "labels" : label_tensor}]
 
-            # targets = [{key: value.to(device) for key, value in boxes}]
-
-            # targets = [box.to(device) for box in boxes]
-
-            targets = [{"boxes": torch.tensor(boxes, dtype=torch.float32).to(device)}]
-            for target in targets:
-                print(target)
+            loss_dict = model(image_cuda, targets)
 
             optimizer.zero_grad()
-            loss_dict = model(image_cuda, boxes)
+
             losses = sum(loss for loss in loss_dict.values())
 
             losses.backward()
