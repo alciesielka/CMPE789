@@ -1,8 +1,10 @@
 #from pycocotools import mask as mask_utils # pip install pycocotools
 from torchvision import transforms
+from torchvision.transforms import functional as F
 from PIL import Image
+import torch
+import numpy as np
 
-    
 def parse_gt_file(file_path):
     gt_data = []
     with open(file_path, 'r') as f:
@@ -40,6 +42,7 @@ def parse_gt_file(file_path):
 
 
 def prepare_data(gt_data, image_folder, frame_id):
+
     image_path = f"{image_folder}/{str(frame_id).zfill(6)}.jpg"
     image = Image.open(image_path).convert("RGB")
 
@@ -55,6 +58,7 @@ def prepare_data(gt_data, image_folder, frame_id):
         ymax = ymin + obj['bb_height']
         boxes.append([xmin, ymin, xmax, ymax])
     
+    boxes = np.array(boxes)
     return image, boxes
 
 def augment_data(original_image):

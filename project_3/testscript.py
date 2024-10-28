@@ -9,7 +9,6 @@ gt_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'  # Path to the MOTS ground trut
 image_folder = 'project_3\\MOT16-02\\img1'  # Path to the folder containing images
 
 
-
 # Load and parse the ground truth data
 gt_data = parse_gt_file(gt_file_path)
 
