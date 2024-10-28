@@ -58,6 +58,7 @@ def prepare_data(gt_data, image_folder, frame_id):
         xmax = xmin + obj['bb_width']
         ymax = ymin + obj['bb_height']
         boxes.append([xmin, ymin, xmax, ymax])
+        
         labels.append(obj['object_id'])
     
     boxes = np.array(boxes)

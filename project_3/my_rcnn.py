@@ -1,7 +1,7 @@
 import numpy as np
 import torchvision
 import torch.optim as optim
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
+from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision import transforms as T
 import torch
@@ -15,8 +15,8 @@ if __name__ == '__main__':
     gt_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS ground truth file
     image_folder = './MOT16-02/img1'  # Path to the folder containing images
 
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained = True)
-    num_classes = 3
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
+    num_classes = 70
 
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
@@ -45,7 +45,6 @@ if __name__ == '__main__':
         model.train()
         model = model.to(device)
         for frame_id in frame_ids:
-            print(frame_id)
         
             # image will be the same for each pass of frame_id, iterate through bboxes
 
@@ -70,5 +69,5 @@ if __name__ == '__main__':
             train_batch_count += 1
 
             torch.cuda.empty_cache()
-
+        
         print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {total_loss / train_batch_count}")
