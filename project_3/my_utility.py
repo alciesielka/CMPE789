@@ -2,6 +2,7 @@
 from torchvision import transforms
 from PIL import Image
 import random
+import json
 import numpy as np
     
 def parse_gt_file(file_path):
@@ -39,6 +40,14 @@ def parse_gt_file(file_path):
             })
     return gt_data
 
+def save_gt_data(gt_data, filename="gt_data.json"):
+    with open(filename, 'w') as f:
+        json.dump(gt_data, f)
+
+def load_gt_data(filename="gt_data.json"):
+    with open(filename, 'r') as f:
+        return json.load(f)
+
 
 def prepare_data(gt_data, image_folder, frame_id):
     image_path = f"{image_folder}/{str(frame_id).zfill(6)}.jpg"
@@ -48,6 +57,7 @@ def prepare_data(gt_data, image_folder, frame_id):
     frame_objects = [obj for obj in gt_data if obj['frame_id'] == frame_id]
 
     boxes = []
+    labels = []
     for obj in frame_objects:
         # Extract bounding box coordinates
         xmin = obj['bb_left']
@@ -55,8 +65,11 @@ def prepare_data(gt_data, image_folder, frame_id):
         xmax = xmin + obj['bb_width']
         ymax = ymin + obj['bb_height']
         boxes.append([xmin, ymin, xmax, ymax])
+
+        labels.append(obj['object_id'])
     
-    return image, boxes
+    boxes = np.array(boxes)
+    return image, boxes, labels
 
 def augment_data(original_image):
     augmentation = transforms.Compose([
@@ -70,7 +83,7 @@ def augment_data(original_image):
     return augmented_image
 
 
-def prepare_triplet_data(gt_data, image_folder):
+def prepare_triplet_data(gt_data):
     triplets = []
     
     for obj in gt_data:

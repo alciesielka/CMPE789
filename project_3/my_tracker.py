@@ -10,7 +10,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from torch.utils.data import Dataset
-from my_utility import prepare_triplet_data
+from my_utility import prepare_triplet_data, parse_gt_file
 from PIL import Image  
 
 class Siamese_Network(nn.Module):
@@ -18,24 +18,33 @@ class Siamese_Network(nn.Module):
         super(Siamese_Network, self).__init__()
        
         # CNN layers for feature extraction
-        self.conv1 = nn.Conv2d(1, 64, kernel_size=3) # 256, 64?
+        self.conv1 = nn.Conv2d(256, 64, kernel_size=3) # 256, 64?
         self.conv2 = nn.Conv2d(64, 128, kernel_size=3)
         self.conv3 = nn.Conv2d(128, 128, kernel_size=3)
-        self.fc1 = nn.Linear(128 * 22 * 22, 256)
+
+        self.fc1 = None
+        #self.fc1 = nn.Linear(128 * 22 * 22, 256)
         self.fc2 = nn.Linear(256, 256)
+
     def forward_one(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
         x = F.relu(F.max_pool2d(self.conv2(x), 2))
         x = F.relu(self.conv3(x))
-        x = x.view(-1, 128 * 22 * 22)
+
+        if self.fc1 is None:
+            flattened_size = x.view(x.size(0), -1).size(1)
+            self.fc1 = nn.Linear(flattened_size, 256).to(x.device)
+
+        x = x.view(x.size(0), -1)  #  x = x.view(-1, 128 * 22 * 22)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
    
-    def forward(self, input1, input2):
+    def forward(self, input1, input2, input3):
         output1 = self.forward_one(input1)
         output2 = self.forward_one(input2)
-        return output1, output2
+        output3 = self.forward_one(input3)
+        return output1, output2, output3
 
 
 class TripletLoss(nn.Module):
@@ -78,7 +87,7 @@ class TripletDataset(Dataset):
 
 def load_faster_rcnn(faster_rcnn_path):
     model = fasterrcnn_resnet50_fpn(weights="DEFAULT")
-    num_classes = 70
+    num_classes = 81
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     model.load_state_dict(torch.load(faster_rcnn_path))
@@ -127,13 +136,15 @@ if __name__ == '__main__':
     optimizer = optim.Adam(siamese_net.parameters(), lr=1e-4)
 
     # Prepare triplet data and create DataLoader
-    triplet_data = prepare_triplet_data(...)  # Populate with the necessary arguments
+    gt_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'
+    gt_data = parse_gt_file(gt_file_path)
+    triplet_data = prepare_triplet_data(gt_data) 
     transform = transforms.Compose([transforms.Resize((100, 100)), transforms.ToTensor()])  # Adjust size as necessary
     triplet_dataset = TripletDataset(triplet_data, "project_3\\MOT16-02\\img1", transform)
     dataloader = DataLoader(triplet_dataset, batch_size=32, shuffle=True)
 
     # Train the Siamese Network
-    for epoch in range(10):
+    for epoch in range(1):
         print(f"Epoch {epoch + 1}")
         train_siamese(siamese_net, feature_extractor, dataloader, optimizer, criterion, device)
     
