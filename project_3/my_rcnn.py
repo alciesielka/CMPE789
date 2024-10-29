@@ -30,6 +30,7 @@ if __name__ == '__main__':
     optimizer = optim.SGD(params_to_optimize, lr = 0.005, momentum = 0.9, weight_decay = 0.0005)
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    print(device)
     num_epochs = 3
 
     transform = T.ToTensor()
