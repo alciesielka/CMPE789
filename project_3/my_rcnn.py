@@ -16,7 +16,7 @@ if __name__ == '__main__':
     image_folder = './MOT16-02/img1'  # Path to the folder containing images
 
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
-    num_classes = 70
+    num_classes = 81
 
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print(device)
-    num_epochs = 3
+    num_epochs = 8
 
     transform = T.ToTensor()
 
@@ -72,3 +72,5 @@ if __name__ == '__main__':
             torch.cuda.empty_cache()
         
         print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {total_loss / train_batch_count}")
+
+# ADD SAVE FEATURE!!!
