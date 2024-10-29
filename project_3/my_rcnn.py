@@ -9,10 +9,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from my_utility import parse_gt_file, prepare_data, augment_data
 
-def validate(model, running_test_loss, test_batch_count, val_data_path, image_folder):
+def validate(model, val_data_path, image_folder):
     model.eval()
-    correct = 0
-    total = 0
+    total_loss = 0.0
+    val_batch_count = 0
 
     transform = T.ToTensor()
 
@@ -30,14 +30,26 @@ def validate(model, running_test_loss, test_batch_count, val_data_path, image_fo
 
             targets = [{"boxes" : box_tensor, "labels" : label_tensor}]
 
-            boxes, labels = model(image_cuda)
-            # how do we test validation??
+            outputs = model(image_cuda)
 
+            losses = sum(loss for loss in loss_dict.values())
+
+            val_batch_count += 1
+
+            total_loss += losses.item()
+        
+        avg_val_loss = total_loss/val_batch_count
+
+    return avg_val_loss
+    
 
 if __name__ == '__main__':
 
     gt_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS ground truth file
     image_folder = './MOT16-02/img1'  # Path to the folder containing images
+
+    val_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS validation files
+    val_image_folder = './MOT16-02/img1'  # Path to the folder containing val images
 
     # MOTS - 80 classes + 1 background class
     num_classes = 81
@@ -73,7 +85,7 @@ if __name__ == '__main__':
     for epoch in range(num_epochs):
         model.train()
         model = model.to(device)
-        
+
         for frame_id in frame_ids:
             image, boxes, labels = prepare_data(gt_data, image_folder, frame_id)
         
@@ -97,18 +109,23 @@ if __name__ == '__main__':
 
             torch.cuda.empty_cache()
 
-        loss = total_loss / train_batch_count
-        print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {loss}")
+        epoch_loss = total_loss / train_batch_count
         
-        if loss < old_loss:
-            model_name = str(epoch+1) + ".pth"
+        val_loss = validate(model, val_file_path, val_image_folder)
+
+        print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss}, Val Loss {val_loss}")
+
+        if epoch_loss < old_loss:
+            model_name = "best.pth"
             torch.save(model.state_dict(), model_name)
 
-        old_loss = loss
+        # if val_loss < old_loss:
+        #     model_name = str(epoch+1) + ".pth"
+        #     torch.save(model.state_dict(), model_name)
+
+        # old_loss = val_loss 
+        old_loss = epoch_loss
 
 
-'''
-    val_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS validation files
-    val_image_folder = './MOT16-02/img1'  # Path to the folder containing val images
-'''
+# how to add augmentations??????
 
