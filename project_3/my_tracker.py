@@ -1,18 +1,24 @@
 import numpy as np
 import torchvision
+import torch.optim as optim
+import torch.nn as nn
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision import transforms
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 import torch.nn.functional as F
+from torch.utils.data import Dataset
+from my_utility import prepare_triplet_data
+from PIL import Image  
 
 class Siamese_Network(nn.Module):
     def __init__(self):
         super(Siamese_Network, self).__init__()
        
         # CNN layers for feature extraction
-        self.conv1 = nn.Conv2d(1, 64, kernel_size=3)
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=3) # 256, 64?
         self.conv2 = nn.Conv2d(64, 128, kernel_size=3)
         self.conv3 = nn.Conv2d(128, 128, kernel_size=3)
         self.fc1 = nn.Linear(128 * 22 * 22, 256)
@@ -31,49 +37,106 @@ class Siamese_Network(nn.Module):
         output2 = self.forward_one(input2)
         return output1, output2
 
-    def similarity(self, output1, output2):
-        return F.cosine_similarity(output1, output2)
+
+class TripletLoss(nn.Module):
+    def __init__(self, margin=1.0):
+        super(TripletLoss, self).__init__()
+        self.margin = margin
+
+    def forward(self, anchor, positive, negative):
+        pos_dist = F.pairwise_distance(anchor, positive, p=2)
+        neg_dist = F.pairwise_distance(anchor, negative, p=2)
+        loss = F.relu(pos_dist - neg_dist + self.margin).mean()
+        return loss
+
+class TripletDataset(Dataset):
+    def __init__(self, triplet_data, image_folder, transform=None):
+        self.triplet_data = triplet_data
+        self.image_folder = image_folder
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.triplet_data)
+
+    def __getitem__(self, idx):
+        triplet = self.triplet_data[idx]
+        anchor_frame, anchor_id = triplet['anchor']
+        positive_frame, positive_id = triplet['positive']
+        negative_frame, negative_id = triplet['negative']
+
+        anchor_image = Image.open(f"{self.image_folder}/{str(anchor_frame).zfill(6)}.jpg").convert("RGB")
+        positive_image = Image.open(f"{self.image_folder}/{str(positive_frame).zfill(6)}.jpg").convert("RGB")
+        negative_image = Image.open(f"{self.image_folder}/{str(negative_frame).zfill(6)}.jpg").convert("RGB")
+
+        if self.transform:
+            anchor_image = self.transform(anchor_image)
+            positive_image = self.transform(positive_image)
+            negative_image = self.transform(negative_image)
+
+        return anchor_image, positive_image, negative_image
 
 
-def rcnn_feature_extraction(model, image):
-    with torch.no_grad():
-        features = model.backbone(image)
-    return features
+def load_faster_rcnn(faster_rcnn_path):
+    model = fasterrcnn_resnet50_fpn(weights="DEFAULT")
+    num_classes = 70
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    model.load_state_dict(torch.load(faster_rcnn_path))
+    for param in model.parameters():
+        param.requires_grad = False
+    return model.backbone  
 
-# Incomplete .. just thoughts
-def train_model(CNN, RCNN, frame):
-    with torch.no_grad():
-        # Pass frame through RCNN to get detections and features
-        features = rcnn_feature_extraction(rcnn, frame)
+
+def train_siamese(siamese_net, feature_extractor, dataloader, optimizer, criterion, device):
+    siamese_net.train()
+    feature_extractor.eval()
     
-    # need to loop through all features....
-        # Pass through the Siamese network
-        feature1 = features[0].unsqueeze(0)  
-        feature2 = features[1].unsqueeze(0)  
-    
-        # Generate embeddings for comparison
-        embedding1 = CNN.forward_one(feature1)
-        embedding2 = CNN.forward_one(feature2)
-    
-        # Compute similarity between embeddings for tracking association
-        similarity_score = CNN.similarity(embedding1, embedding2)
-        print("Similarity Score:", similarity_score.item())
+    for batch_idx, (anchor, positive, negative) in enumerate(dataloader):
+        anchor, positive, negative = anchor.to(device), positive.to(device), negative.to(device)
+        
+        # Extract features from Faster R-CNN backbone
+        with torch.no_grad():
+            anchor_feat = feature_extractor(anchor)["0"]
+            positive_feat = feature_extractor(positive)["0"]
+            negative_feat = feature_extractor(negative)["0"]
+        
+        # Forward pass through Siamese Network
+        out_anchor, out_positive, out_negative = siamese_net(anchor_feat, positive_feat, negative_feat)
+        
+        # Compute Triplet Loss
+        loss = criterion(out_anchor, out_positive, out_negative)
+        
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+        if batch_idx % 10 == 0:
+            print(f"Batch {batch_idx}, Loss: {loss.item()}")
 
 
 if __name__ == '__main__':
-    rcnn = fasterrcnn_resnet50_fpn(pretrained=False)
-    rcnn.load_state_dict(torch.load("rcnn_weights.pth"))  # Load your trained weights
-    rcnn.eval()  # Set RCNN to evaluation mode
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    # Load the feature extractor
+    feature_extractor = load_faster_rcnn("fasterrcnn_mots_epoch3.pth")
+    feature_extractor.to(device)
 
-    # do stuff here
+    # Initialize Siamese Network and optimizer
+    siamese_net = Siamese_Network().to(device)
+    criterion = TripletLoss(margin=1.0)
+    optimizer = optim.Adam(siamese_net.parameters(), lr=1e-4)
 
+    # Prepare triplet data and create DataLoader
+    triplet_data = prepare_triplet_data(...)  # Populate with the necessary arguments
+    transform = transforms.Compose([transforms.Resize((100, 100)), transforms.ToTensor()])  # Adjust size as necessary
+    triplet_dataset = TripletDataset(triplet_data, "project_3\\MOT16-02\\img1", transform)
+    dataloader = DataLoader(triplet_dataset, batch_size=32, shuffle=True)
 
-'''
-STEPS:
-1) load data -- yes?
-2) augment data -- yes?
-3) fine tune pretrained model (rcnn) on MOTS? -- next step
-4) pass info from rcnn and train siamese network 
-5) create tracking pipeline
-'''
+    # Train the Siamese Network
+    for epoch in range(10):
+        print(f"Epoch {epoch + 1}")
+        train_siamese(siamese_net, feature_extractor, dataloader, optimizer, criterion, device)
+    
+    # Save the trained Siamese Network
+    torch.save(siamese_net.state_dict(), "siamese_network_reid.pth")
+    print("Siamese Network model saved.")

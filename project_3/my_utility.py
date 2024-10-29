@@ -1,7 +1,8 @@
 #from pycocotools import mask as mask_utils # pip install pycocotools
 from torchvision import transforms
 from PIL import Image
-
+import random
+import numpy as np
     
 def parse_gt_file(file_path):
     gt_data = []
@@ -67,3 +68,27 @@ def augment_data(original_image):
     
     augmented_image = augmentation(original_image)
     return augmented_image
+
+
+def prepare_triplet_data(gt_data, image_folder):
+    triplets = []
+    
+    for obj in gt_data:
+        anchor_frame = obj['frame_id']
+        anchor_id = obj['object_id']
+
+        positives = [o for o in gt_data if o['frame_id'] == anchor_frame and o['object_id'] == anchor_id]
+        negatives = [o for o in gt_data if o['frame_id'] == anchor_frame and o['object_id'] != anchor_id]
+
+        # triplets
+        for pos in positives:
+            if negatives:  # Ensure there are negatives to choose from
+                neg = negatives[np.random.choice(len(negatives))]
+                triplet = {
+                    'anchor': (anchor_frame, anchor_id),
+                    'positive': (pos['frame_id'], pos['object_id']),
+                    'negative': (neg['frame_id'], neg['object_id'])
+                }
+                triplets.append(triplet)
+    
+    return triplets
