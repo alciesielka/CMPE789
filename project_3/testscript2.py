@@ -2,17 +2,21 @@
 
 import cv2
 import torch
+from my_tracker import load_faster_rcnn, Siamese_Network
+from torchvision import transforms
+import torch.nn.functional as F
 
 # Load your models
 feature_extractor = load_faster_rcnn("fasterrcnn_mots_epoch3.pth")
 feature_extractor.eval()
 
 siamese_net = Siamese_Network()
-siamese_net.load_state_dict(torch.load("siamese_network_reid.pth"))
+siamese_net_weights = torch.load("siamese_network_reid.pth", map_location=torch.device('cuda'))  # or 'cuda' if available
+siamese_net.load_state_dict(siamese_net_weights)
 siamese_net.eval()
 
 # Open the video file or webcam
-video_path = "path/to/video.mp4"  # Change this to your video file
+video_path = "project3\\output_with_mask.mp4"  # Change this to your video file
 cap = cv2.VideoCapture(video_path)
 
 # Initialize variables for tracking

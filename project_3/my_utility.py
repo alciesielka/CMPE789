@@ -4,16 +4,17 @@ from PIL import Image
 import random
 import json
 import numpy as np
-    
+import os
+import numpy as np
+
 def parse_gt_file(file_path):
     gt_data = []
     with open(file_path, 'r') as f:
         for line in f:
-            # Split the line by commas and strip whitespace
             parts = line.strip().split(',')
             # Ensure there are at least 8 elements in the line
             if len(parts) < 8:
-                continue  # Skip incomplete lines
+                continue  # Skip incomplete lines Do i need this?
 
             frame_id = int(parts[0])  # Frame number
             obj_id = int(parts[1])     # ID
@@ -40,6 +41,8 @@ def parse_gt_file(file_path):
             })
     return gt_data
 
+# For later use
+#------------------------------------------------------
 def save_gt_data(gt_data, filename="gt_data.json"):
     with open(filename, 'w') as f:
         json.dump(gt_data, f)
@@ -47,7 +50,7 @@ def save_gt_data(gt_data, filename="gt_data.json"):
 def load_gt_data(filename="gt_data.json"):
     with open(filename, 'r') as f:
         return json.load(f)
-
+# ----------------------------------------------------
 
 def prepare_data(gt_data, image_folder, frame_id):
     image_path = f"{image_folder}/{str(frame_id).zfill(6)}.jpg"
@@ -71,6 +74,7 @@ def prepare_data(gt_data, image_folder, frame_id):
     boxes = np.array(boxes)
     return image, boxes, labels
 
+# How do we augment data
 def augment_data(original_image):
     augmentation = transforms.Compose([
         transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
@@ -83,25 +87,36 @@ def augment_data(original_image):
     return augmented_image
 
 
-def prepare_triplet_data(gt_data):
-    triplets = []
-    
-    for obj in gt_data:
-        anchor_frame = obj['frame_id']
-        anchor_id = obj['object_id']
 
-        positives = [o for o in gt_data if o['frame_id'] == anchor_frame and o['object_id'] == anchor_id]
-        negatives = [o for o in gt_data if o['frame_id'] == anchor_frame and o['object_id'] != anchor_id]
 
-        # triplets
-        for pos in positives:
-            if negatives:  # Ensure there are negatives to choose from
-                neg = negatives[np.random.choice(len(negatives))]
-                triplet = {
-                    'anchor': (anchor_frame, anchor_id),
-                    'positive': (pos['frame_id'], pos['object_id']),
-                    'negative': (neg['frame_id'], neg['object_id'])
-                }
-                triplets.append(triplet)
+def load_market1501_triplets(image_folder):
+    triplet_data = []
+    identity_dict = {}  
+
+    for filename in os.listdir(image_folder):
+        if filename.endswith(".jpg"):
+            # person ID 
+            identity = int(filename[:4])  # First four digits represent the person ID
+            # Store image paths in a dictionary with identity as key
+            if identity not in identity_dict:
+                identity_dict[identity] = []
+            identity_dict[identity].append(filename)
     
-    return triplets
+    # triplets
+    for identity, images in identity_dict.items():
+        if len(images) < 2:
+            continue  # We need at least 2 images to create a triplet
+        for i in range(len(images)):
+            anchor = (images[i], identity)  # Tuple with filename and ID
+            positive = (images[(i + 1) % len(images)], identity)  # Tuple with filename and ID
+            negative_identity = identity
+            while negative_identity == identity:
+                negative_identity = np.random.choice(list(identity_dict.keys()))
+            negative = (np.random.choice(identity_dict[negative_identity]), negative_identity)  # Tuple with filename and ID
+            triplet_data.append({
+                'anchor': anchor,
+                'positive': positive,
+                'negative': negative,
+            })
+    
+    return triplet_data

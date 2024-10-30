@@ -10,33 +10,25 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from torch.utils.data import Dataset
-from my_utility import prepare_triplet_data, parse_gt_file
+from my_utility import load_market1501_triplets
 from PIL import Image  
 
 class Siamese_Network(nn.Module):
     def __init__(self):
         super(Siamese_Network, self).__init__()
-       
-        # CNN layers for feature extraction
         self.conv1 = nn.Conv2d(256, 64, kernel_size=3) # 256, 64?
         self.conv2 = nn.Conv2d(64, 128, kernel_size=3)
         self.conv3 = nn.Conv2d(128, 128, kernel_size=3)
-
-        self.fc1 = None
-        #self.fc1 = nn.Linear(128 * 22 * 22, 256)
+        self.fc1 = nn.Linear(512, 256)
         self.fc2 = nn.Linear(256, 256)
 
     def forward_one(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
         x = F.relu(F.max_pool2d(self.conv2(x), 2))
         x = F.relu(self.conv3(x))
-
-        if self.fc1 is None:
-            flattened_size = x.view(x.size(0), -1).size(1)
-            self.fc1 = nn.Linear(flattened_size, 256).to(x.device)
-
         x = x.view(x.size(0), -1)  #  x = x.view(-1, 128 * 22 * 22)
         x = F.relu(self.fc1(x))
+    
         x = self.fc2(x)
         return x
    
@@ -48,7 +40,7 @@ class Siamese_Network(nn.Module):
 
 
 class TripletLoss(nn.Module):
-    def __init__(self, margin=1.0):
+    def __init__(self, margin=0.2):
         super(TripletLoss, self).__init__()
         self.margin = margin
 
@@ -73,15 +65,16 @@ class TripletDataset(Dataset):
         positive_frame, positive_id = triplet['positive']
         negative_frame, negative_id = triplet['negative']
 
-        anchor_image = Image.open(f"{self.image_folder}/{str(anchor_frame).zfill(6)}.jpg").convert("RGB")
-        positive_image = Image.open(f"{self.image_folder}/{str(positive_frame).zfill(6)}.jpg").convert("RGB")
-        negative_image = Image.open(f"{self.image_folder}/{str(negative_frame).zfill(6)}.jpg").convert("RGB")
+        anchor_image = Image.open(f"{self.image_folder}/{anchor_frame}").convert("RGB")
+        positive_image = Image.open(f"{self.image_folder}/{positive_frame}").convert("RGB")
+        negative_image = Image.open(f"{self.image_folder}/{negative_frame}").convert("RGB")
 
         if self.transform:
             anchor_image = self.transform(anchor_image)
             positive_image = self.transform(positive_image)
             negative_image = self.transform(negative_image)
 
+        #print(f"Anchor image data: {anchor_image[0, :, :]}")
         return anchor_image, positive_image, negative_image
 
 
@@ -109,12 +102,11 @@ def train_siamese(siamese_net, feature_extractor, dataloader, optimizer, criteri
             positive_feat = feature_extractor(positive)["0"]
             negative_feat = feature_extractor(negative)["0"]
         
-        # Forward pass through Siamese Network
         out_anchor, out_positive, out_negative = siamese_net(anchor_feat, positive_feat, negative_feat)
         
-        # Compute Triplet Loss
+        # Triplet Loss
         loss = criterion(out_anchor, out_positive, out_negative)
-        
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -136,12 +128,17 @@ if __name__ == '__main__':
     optimizer = optim.Adam(siamese_net.parameters(), lr=1e-4)
 
     # Prepare triplet data and create DataLoader
-    gt_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'
-    gt_data = parse_gt_file(gt_file_path)
-    triplet_data = prepare_triplet_data(gt_data) 
+    # NEED TO USE MARKET AND NOT MOTS
+    data = 'project_3\\bounding_box_train'
+
+    triplet_data = load_market1501_triplets(data) 
     transform = transforms.Compose([transforms.Resize((100, 100)), transforms.ToTensor()])  # Adjust size as necessary
-    triplet_dataset = TripletDataset(triplet_data, "project_3\\MOT16-02\\img1", transform)
+    triplet_dataset = TripletDataset(triplet_data, "project_3\\bounding_box_train", transform)
     dataloader = DataLoader(triplet_dataset, batch_size=32, shuffle=True)
+
+    # Calculate the number of batches
+    num_batches = len(dataloader)  # This directly gives the number of batches in the DataLoader
+    print(f"Number of batches per epoch: {num_batches}")
 
     # Train the Siamese Network
     for epoch in range(1):
