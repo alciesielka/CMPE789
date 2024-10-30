@@ -8,6 +8,20 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from my_utility import parse_gt_file, prepare_data, augment_data
+import matplotlib.pyplot as plt
+
+def plot_loss(test_losses, val_losses, epoch):
+    epoch = int(epoch)
+    x = np.arange(1, epoch+1)
+    plt.plot(x, test_losses, 'r--', label = 'test_loss')
+    plt.plot(x, val_losses, 'b--', label = 'val_loss')
+
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Loss vs Epoch")
+    plt.legend()
+
+    plt.savefig("./test_val_loss.png")
 
 def validate(model, val_data_path, image_folder):
     model.eval()
@@ -71,16 +85,21 @@ if __name__ == '__main__':
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print(device)
 
-    num_epochs = 8
+    num_epochs = 3
 
     # load data
     transform = T.ToTensor()
     gt_data = parse_gt_file(gt_file_path)
     frame_ids = sorted(set(obj['frame_id'] for obj in gt_data))
 
+    # init losses for later calculations
     total_loss = 0.0
     train_batch_count = 0
     old_loss = 10000
+
+    # for plotting analysis after training
+    test_loss_arr = []
+    val_loss_arr = []
     
     for epoch in range(num_epochs):
         model.train()
@@ -113,9 +132,12 @@ if __name__ == '__main__':
         
         val_loss = validate(model, val_file_path, val_image_folder)
 
+        test_loss_arr.append(epoch_loss)
+        val_loss_arr.append(val_loss)
+
         print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss}, Val Loss {val_loss}")
 
-        if epoch_loss < old_loss:
+        if val_loss < old_loss:
             model_name = "best.pth"
             torch.save(model.state_dict(), model_name)
 
@@ -124,8 +146,9 @@ if __name__ == '__main__':
         #     torch.save(model.state_dict(), model_name)
 
         # old_loss = val_loss 
-        old_loss = epoch_loss
+        old_loss = val_loss
 
+    plot_loss(test_loss_arr, val_loss_arr, num_epochs)
 
 # how to add augmentations??????
 
