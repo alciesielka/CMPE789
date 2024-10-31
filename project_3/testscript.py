@@ -19,7 +19,7 @@ frame_ids = sorted(set(obj['frame_id'] for obj in gt_data))
 # Loop through each frame ID
 for frame_id in frame_ids:
     # Load image and bounding boxes
-    image, boxes = prepare_data(gt_data, image_folder, frame_id)
+    image, boxes, labels = prepare_data(gt_data, image_folder, frame_id)
 
     # Display original image with bounding boxes
     fig, ax = plt.subplots(1, 2, figsize=(12, 6))
