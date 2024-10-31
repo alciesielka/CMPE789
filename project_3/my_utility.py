@@ -74,3 +74,38 @@ def augment_data(original_image):
     
     augmented_image = augmentation(original_image)
     return augmented_image
+
+
+
+
+def load_market1501_triplets(image_folder):
+    triplet_data = []
+    identity_dict = {}  
+
+    for filename in os.listdir(image_folder):
+        if filename.endswith(".jpg"):
+            # person ID 
+            identity = int(filename[:4])  # First four digits represent the person ID
+            # Store image paths in a dictionary with identity as key
+            if identity not in identity_dict:
+                identity_dict[identity] = []
+            identity_dict[identity].append(filename)
+    
+    # triplets
+    for identity, images in identity_dict.items():
+        if len(images) < 2:
+            continue  # We need at least 2 images to create a triplet
+        for i in range(len(images)):
+            anchor = (images[i], identity)  # Tuple with filename and ID
+            positive = (images[(i + 1) % len(images)], identity)  # Tuple with filename and ID
+            negative_identity = identity
+            while negative_identity == identity:
+                negative_identity = np.random.choice(list(identity_dict.keys()))
+            negative = (np.random.choice(identity_dict[negative_identity]), negative_identity)  # Tuple with filename and ID
+            triplet_data.append({
+                'anchor': anchor,
+                'positive': positive,
+                'negative': negative,
+            })
+    
+    return triplet_data
