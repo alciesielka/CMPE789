@@ -76,7 +76,7 @@ def augment_data(original_image):
     return augmented_image
 
 
-
+import os
 
 def load_market1501_triplets(image_folder):
     triplet_data = []
