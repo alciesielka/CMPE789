@@ -9,17 +9,15 @@ gt_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'  # Path to the MOTS ground trut
 image_folder = 'project_3\\MOT16-02\\img1'  # Path to the folder containing images
 
 
-
 # Load and parse the ground truth data
 gt_data = parse_gt_file(gt_file_path)
 
 # Get unique frame IDs from the ground truth data
 frame_ids = sorted(set(obj['frame_id'] for obj in gt_data))
-
 # Loop through each frame ID
 for frame_id in frame_ids:
-    # Load image and bounding boxes
-    image, boxes = prepare_data(gt_data, image_folder, frame_id)
+    # Load image, bounding boxes, and labels
+    image, boxes, _ = prepare_data(gt_data, image_folder, frame_id)  # Unpack all three, ignore labels
 
     # Display original image with bounding boxes
     fig, ax = plt.subplots(1, 2, figsize=(12, 6))
@@ -27,7 +25,11 @@ for frame_id in frame_ids:
     # Draw bounding boxes on the original image
     draw = ImageDraw.Draw(image)
     for box in boxes:
-        draw.rectangle(box, outline="red", width=2)
+        # Ensure each box has exactly four elements (xmin, ymin, xmax, ymax)
+        if len(box) == 4:
+            draw.rectangle([box[0], box[1], box[2], box[3]], outline="red", width=2)
+        else:
+            print(f"Unexpected box format: {box}")  # Debugging print if format is incorrect
 
     # Plot the original image
     ax[0].imshow(image)
@@ -39,7 +41,10 @@ for frame_id in frame_ids:
     # Draw bounding boxes on augmented image
     draw_aug = ImageDraw.Draw(augmented_image)
     for box in boxes:
-        draw_aug.rectangle(box, outline="blue", width=2)
+        if len(box) == 4:
+            draw_aug.rectangle([box[0], box[1], box[2], box[3]], outline="blue", width=2)
+        else:
+            print(f"Unexpected box format in augmented image: {box}")  # Debugging print if format is incorrect
 
     # Plot the augmented image
     ax[1].imshow(augmented_image)
