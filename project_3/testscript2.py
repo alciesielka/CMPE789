@@ -11,7 +11,7 @@ feature_extractor = load_faster_rcnn("fasterrcnn_mots_epoch3.pth")
 feature_extractor.eval()
 
 siamese_net = Siamese_Network()
-siamese_net_weights = torch.load("siamese_network_reid.pth", map_location=torch.device('cuda'))  # or 'cuda' if available
+siamese_net_weights = torch.load("siamese_network_reid.pth", map_location=torch.device('cuda'), weights_only=True)  # or 'cuda' if available
 siamese_net.load_state_dict(siamese_net_weights)
 siamese_net.eval()
 

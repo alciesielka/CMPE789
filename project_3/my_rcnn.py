@@ -116,7 +116,8 @@ if __name__ == '__main__':
         for frame_id in frame_ids:
             image, boxes, labels = prepare_data(gt_data, image_folder, frame_id)
         
-            image_cuda = [transform(image).to(device)]
+            augmented = augment_data(image)
+            image_cuda = [T.ToTensor()(augmented).to(device)]
 
             box_tensor = torch.tensor(boxes, dtype=torch.float32).to(device)
             label_tensor = torch.tensor(labels, dtype=torch.int64).to(device)

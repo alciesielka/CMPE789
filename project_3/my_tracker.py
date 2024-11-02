@@ -12,6 +12,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 from my_utility import load_market1501_triplets
 from PIL import Image  
+from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
 
 class Siamese_Network(nn.Module):
     def __init__(self):
@@ -79,11 +80,11 @@ class TripletDataset(Dataset):
 
 
 def load_faster_rcnn(faster_rcnn_path):
-    model = fasterrcnn_resnet50_fpn(weights="DEFAULT")
+    model = fasterrcnn_resnet50_fpn(weights='DEFAULT')
     num_classes = 81
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-    model.load_state_dict(torch.load(faster_rcnn_path))
+    model.load_state_dict(torch.load(faster_rcnn_path, map_location="cuda" if torch.cuda.is_available() else "cpu"))
     for param in model.parameters():
         param.requires_grad = False
     return model.backbone  
@@ -119,7 +120,7 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Load the feature extractor
-    feature_extractor = load_faster_rcnn("fasterrcnn_mots_epoch3.pth")
+    feature_extractor = load_faster_rcnn("best.pth")
     feature_extractor.to(device)
 
     # Initialize Siamese Network and optimizer
