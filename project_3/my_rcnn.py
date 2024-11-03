@@ -59,19 +59,19 @@ def validate(model, val_data_path, image_folder):
 
 if __name__ == '__main__':
     # Tianna
-    # gt_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS ground truth file
-    # image_folder = './MOT16-02/img1'  # Path to the folder containing images
+    gt_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS ground truth file
+    image_folder = './MOT16-02/img1'  # Path to the folder containing images
 
-    # val_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS validation files
-    # val_image_folder = './MOT16-02/img1'  # Path to the folder containing val images
+    val_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS validation files
+    val_image_folder = './MOT16-02/img1'  # Path to the folder containing val images
 
     # Alex
 
-    gt_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'  # Path to the MOTS ground truth file
-    image_folder = 'project_3\\MOT16-02\\img1'  # Path to the folder containing images
+    # gt_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'  # Path to the MOTS ground truth file
+    # image_folder = 'project_3\\MOT16-02\\img1'  # Path to the folder containing images
 
-    val_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'  # Path to the MOTS validation files
-    val_image_folder = 'project_3\\MOT16-02\\img1'  # Path to the folder containing val images
+    # val_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'  # Path to the MOTS validation files
+    # val_image_folder = 'project_3\\MOT16-02\\img1'  # Path to the folder containing val images
 
     # MOTS - 80 classes + 1 background class
     num_classes = 81
