@@ -8,3 +8,4 @@ driving_log.csv
 /project_3/_pycache_/my_utility.cpython-310.pyc
 /project_3/output_with_mask.mp4
 output_with_mask.mp4
+*.zip
