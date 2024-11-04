@@ -2,45 +2,27 @@
 
 import cv2
 import torch
-from my_tracker import load_faster_rcnn, Siamese_Network
+from my_tracker import load_faster_rcnn2, Siamese_Network
 from torchvision import transforms
 import torch.nn.functional as F
 
 
 print("Loading Faster R-CNN model...")
-try:
-    feature_extractor = load_faster_rcnn("best.pth")
-    feature_extractor.eval()
-    print("Faster R-CNN model loaded successfully.")
-except Exception as e:
-    print(f"Error loading Faster R-CNN model: {e}")
-    exit()
-
-
-
-#feature_extractor = load_faster_rcnn("best.pth")
-#feature_extractor.eval()
+feature_extractor = load_faster_rcnn2("best.pth")
+feature_extractor.eval()
+print("Faster R-CNN model loaded successfully.")
 
 print("Loading Siamese Network model...")
-try:
-    siamese_net = Siamese_Network()
-    siamese_net_weights = torch.load(
+siamese_net = Siamese_Network()
+siamese_net_weights = torch.load(
         "siamese_network_reid.pth", map_location="cuda" if torch.cuda.is_available() else "cpu", weights_only=True
     )
-    siamese_net.load_state_dict(siamese_net_weights)
-    siamese_net.eval()
-    print("Siamese Network model loaded successfully.")
-except Exception as e:
-    print(f"Error loading Siamese Network model: {e}")
-    exit()
-
-#siamese_net = Siamese_Network()
-#siamese_net_weights = torch.load("siamese_network_reid.pth", map_location=torch.device('cuda'), weights_only=True)  # or 'cuda' if available
-#siamese_net.load_state_dict(siamese_net_weights)
-#siamese_net.eval()
+siamese_net.load_state_dict(siamese_net_weights)
+siamese_net.eval()
+print("Siamese Network model loaded successfully.")
 
 # video from google drive
-video_path = "project3\\output_with_mask.mp4"
+video_path = "output_with_mask.mp4"
 cap = cv2.VideoCapture(video_path)
 if not cap.isOpened():
     print("Error: Video file could not be opened.")
@@ -62,19 +44,9 @@ while cap.isOpened():
 
     # Detection PortioN:
     with torch.no_grad():
-        #detections = feature_extractor(frame_tensor)
-        try:
-            detections = feature_extractor(frame_tensor)
-        except Exception as e:
-            print(f"Error during object detection: {e}")
-            break
+        detections = feature_extractor(frame_tensor)
 
-    try:
-        boxes, labels, scores = detections['boxes'], detections['labels'], detections['scores']
-    except KeyError as e:
-        print(f"Unexpected format in detections output: missing key {e}")
-        break
-    #boxes, labels, scores = detections['boxes'], detections['labels'], detections['scores']
+    boxes, labels, scores = detections[0]['boxes'], detections[0]['labels'], detections[0]['scores']
 
     for box, label, score in zip(boxes, labels, scores):
         if score > 0.5: 
@@ -90,7 +62,7 @@ while cap.isOpened():
             except Exception as e:
                 print(f"Error during Siamese Network feature extraction: {e}")
                 break
-            
+
             # Matching and tracking logic
             matched_id = None
             min_distance = float('inf')

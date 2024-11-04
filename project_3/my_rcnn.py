@@ -31,11 +31,11 @@ def validate(model, val_data_path, image_folder):
     transform = T.ToTensor()
 
     val_data = parse_gt_file(val_data_path)
-    frame_ids = sorted(set(obj['frame_id'] for obj in gt_data))
+    frame_ids = sorted(set(obj['frame_id'] for obj in val_data))
     
     with torch.no_grad():
         for frame_id in frame_ids:
-            image, boxes, labels = prepare_data(gt_data, image_folder, frame_id) 
+            image, boxes, labels = prepare_data(val_data, image_folder, frame_id) 
             
             image_cuda = [transform(image).to(device)]
 
@@ -45,6 +45,18 @@ def validate(model, val_data_path, image_folder):
             targets = [{"boxes" : box_tensor, "labels" : label_tensor}]
 
             outputs = model(image_cuda)
+
+            if len(outputs) > 0:
+                boxes = outputs[0]['boxes']
+                labels = outputs[0]['labels']
+                scores = outputs[0]['scores']
+
+                print(f"Boxes: {boxes}")       # Print the detected bounding boxes
+                print(f"Labels: {labels}")     # Print the predicted labels
+                print(f"Scores: {scores}") 
+            else:
+                print("No outputs from the model.")
+                continue
 
             losses = sum(loss for loss in loss_dict.values())
 
@@ -93,7 +105,7 @@ if __name__ == '__main__':
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print(device)
 
-    num_epochs = 3
+    num_epochs = 1
 
     # load data
     transform = T.ToTensor()
@@ -159,5 +171,4 @@ if __name__ == '__main__':
 
     plot_loss(test_loss_arr, val_loss_arr, num_epochs)
 
-# how to add augmentations??????
 

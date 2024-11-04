@@ -84,10 +84,38 @@ def load_faster_rcnn(faster_rcnn_path):
     num_classes = 81
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    
+    
     model.load_state_dict(torch.load(faster_rcnn_path, map_location="cuda" if torch.cuda.is_available() else "cpu"))
     for param in model.parameters():
         param.requires_grad = False
     return model.backbone  
+
+
+
+def load_faster_rcnn2(faster_rcnn_path):
+    model = fasterrcnn_resnet50_fpn(weights='DEFAULT')
+    num_classes = 81 
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    model.load_state_dict(torch.load(faster_rcnn_path, map_location="cuda" if torch.cuda.is_available() else "cpu"))
+    
+    for param in model.parameters():
+        param.requires_grad = False  # Freeze all layers
+
+    for param in model.roi_heads.box_predictor.parameters():
+        param.requires_grad = True  # Allow training for the box predictor
+    model.eval()
+    return model  # Return the entire model
+
+# Load the model
+print("Loading Faster R-CNN model...")
+try:
+    feature_extractor = load_faster_rcnn("best.pth")
+    print("Faster R-CNN model loaded successfully.")
+except Exception as e:
+    print(f"Error loading Faster R-CNN model: {e}")
+    exit()
 
 
 def train_siamese(siamese_net, feature_extractor, dataloader, optimizer, criterion, device):
