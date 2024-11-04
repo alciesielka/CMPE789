@@ -33,6 +33,8 @@ else:
 object_tracker = {}
 next_object_id = 0
 
+annotated_frames = []
+
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
@@ -97,11 +99,21 @@ while cap.isOpened():
             # Draw bounding box and ID
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
             cv2.putText(frame, f'ID: {matched_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-
-    cv2.imshow("Frame", frame)
+    
+    annotated_frames.append(frame)
+    # cv2.imshow("Frame", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'): #exit
         break
+
+
+
+height, width = annotated_frames.shape[:2]
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = cv2.VideoWriter("tracking_video.mp4", fourcc, 30, (width, height))
+for f in annotated_frames:
+    out.write(f)
+out.release()
 
 cap.release()
 cv2.destroyAllWindows()
