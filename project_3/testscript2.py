@@ -37,11 +37,12 @@ annotated_frames = []
 
 while cap.isOpened():
     ret, frame = cap.read()
+    # video is not opening: check
     if not ret:
         print("End of video stream or error reading frame.")
         break
 
-    # Convert frame to a suitable format
+    # Convert frame to tensor
     frame_tensor = transforms.ToTensor()(frame).unsqueeze(0)  
 
     # Detection PortioN:
@@ -56,9 +57,10 @@ while cap.isOpened():
             x1, y1, x2, y2 = map(int, box)
             object_region = frame[y1:y2, x1:x2]
 
-            # Siamese NEtwork here: grabw
+            # Siamese NEtwork here: grab??
             object_region_tensor = transforms.ToTensor()(object_region).unsqueeze(0)
 
+            # how should we use the Siamese Model to do the tracking??
             with torch.no_grad():
                 object_features = feature_extractor(object_region_tensor)  # Use the backbone model ?? not sure
 

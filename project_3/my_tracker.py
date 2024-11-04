@@ -17,8 +17,10 @@ from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
 class Siamese_Network(nn.Module):
     def __init__(self):
         super(Siamese_Network, self).__init__()
-        self.conv1 = nn.Conv2d(256, 64, kernel_size=3) # 256, 64?
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3) # 3
+        print(self.conv1)
         self.conv2 = nn.Conv2d(64, 128, kernel_size=3)
+        print(self.conv2)
         self.conv3 = nn.Conv2d(128, 128, kernel_size=3)
         self.fc1 = nn.Linear(512, 256)
         self.fc2 = nn.Linear(256, 256)
@@ -108,30 +110,31 @@ def load_faster_rcnn2(faster_rcnn_path):
     model.eval()
     return model  # Return the entire model
 
-# Load the model
-print("Loading Faster R-CNN model...")
-try:
-    feature_extractor = load_faster_rcnn("best.pth")
-    print("Faster R-CNN model loaded successfully.")
-except Exception as e:
-    print(f"Error loading Faster R-CNN model: {e}")
-    exit()
+# # Load the model
+# print("Loading Faster R-CNN model...")
+# try:
+#     feature_extractor = load_faster_rcnn("best.pth")
+#     print("Faster R-CNN model loaded successfully.")
+# except Exception as e:
+#     print(f"Error loading Faster R-CNN model: {e}")
+#     exit()
 
 
-def train_siamese(siamese_net, feature_extractor, dataloader, optimizer, criterion, device):
+def train_siamese(siamese_net, dataloader, optimizer, criterion, device):
     siamese_net.train()
-    feature_extractor.eval()
+    #feature_extractor.eval()
     
     for batch_idx, (anchor, positive, negative) in enumerate(dataloader):
         anchor, positive, negative = anchor.to(device), positive.to(device), negative.to(device)
         
         # Extract features from Faster R-CNN backbone
-        with torch.no_grad():
-            anchor_feat = feature_extractor(anchor)["0"]
-            positive_feat = feature_extractor(positive)["0"]
-            negative_feat = feature_extractor(negative)["0"]
+        # train on raw images of datasets, dont extract features?
+        # with torch.no_grad():
+        #     anchor_feat = feature_extractor(anchor)["0"]
+        #     positive_feat = feature_extractor(positive)["0"]
+        #     negative_feat = feature_extractor(negative)["0"]
         
-        out_anchor, out_positive, out_negative = siamese_net(anchor_feat, positive_feat, negative_feat)
+        out_anchor, out_positive, out_negative = siamese_net(anchor, positive, negative)
         
         # Triplet Loss
         loss = criterion(out_anchor, out_positive, out_negative)
@@ -148,8 +151,8 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Load the feature extractor
-    feature_extractor = load_faster_rcnn("best.pth")
-    feature_extractor.to(device)
+    # feature_extractor = load_faster_rcnn("best.pth")
+    # feature_extractor.to(device)
 
     # Initialize Siamese Network and optimizer
     siamese_net = Siamese_Network().to(device)
@@ -172,7 +175,7 @@ if __name__ == '__main__':
     # Train the Siamese Network
     for epoch in range(1):
         print(f"Epoch {epoch + 1}")
-        train_siamese(siamese_net, feature_extractor, dataloader, optimizer, criterion, device)
+        train_siamese(siamese_net, dataloader, optimizer, criterion, device)
     
     # Save the trained Siamese Network
     torch.save(siamese_net.state_dict(), "siamese_network_reid.pth")
