@@ -31,13 +31,16 @@ else:
 object_tracker = {}
 next_object_id = 0
 
+annotated_frames = []
+
 while cap.isOpened():
     ret, frame = cap.read()
+    # video is not opening: check
     if not ret:
         print("End of video stream or error reading frame.")
         break
 
-    # Convert frame to a suitable format
+    # Convert frame to tensor
     frame_tensor = transforms.ToTensor()(frame).unsqueeze(0)  
 
     # Detection PortioN:
@@ -52,9 +55,10 @@ while cap.isOpened():
             x1, y1, x2, y2 = map(int, box)
             object_region = frame[y1:y2, x1:x2]
 
-            # Siamese NEtwork here: grabw
+            # Siamese NEtwork here: grab??
             object_region_tensor = transforms.ToTensor()(object_region).unsqueeze(0)
 
+            # how should we use the Siamese Model to do the tracking??
             with torch.no_grad():
                 object_features = feature_extractor(object_region_tensor)  # Use the backbone model ?? not sure
 
@@ -95,11 +99,21 @@ while cap.isOpened():
             # Draw bounding box and ID
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
             cv2.putText(frame, f'ID: {matched_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-
-    cv2.imshow("Frame", frame)
+    
+    annotated_frames.append(frame)
+    # cv2.imshow("Frame", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'): #exit
         break
+
+
+
+height, width = annotated_frames.shape[:2]
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = cv2.VideoWriter("tracking_video.mp4", fourcc, 30, (width, height))
+for f in annotated_frames:
+    out.write(f)
+out.release()
 
 cap.release()
 cv2.destroyAllWindows()
