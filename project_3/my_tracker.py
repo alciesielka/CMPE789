@@ -78,7 +78,6 @@ class TripletDataset(Dataset):
             positive_image = self.transform(positive_image)
             negative_image = self.transform(negative_image)
 
-        #print(f"Anchor image data: {anchor_image[0, :, :]}")
         return anchor_image, positive_image, negative_image
 
 
@@ -115,17 +114,11 @@ def load_faster_rcnn2(faster_rcnn_path):
 
 def train_siamese(siamese_net, dataloader, optimizer, criterion, device):
     siamese_net.train()
-    #feature_extractor.eval()
     
     for batch_idx, (anchor, positive, negative) in enumerate(dataloader):
         anchor, positive, negative = anchor.to(device), positive.to(device), negative.to(device)
-    
-        # print(f"Anchor device: {anchor.device}, Positive device: {positive.device}, Negative device: {negative.device}")
-        # print(f"Model device: {next(siamese_net.parameters()).device}")
 
         out_anchor, out_positive, out_negative = siamese_net(anchor, positive, negative)
-        
-        
         # Triplet Loss
         loss = criterion(out_anchor, out_positive, out_negative)
 
@@ -136,6 +129,21 @@ def train_siamese(siamese_net, dataloader, optimizer, criterion, device):
         if batch_idx % 10 == 0:
             print(f"Batch {batch_idx}, Loss: {loss.item()}")
 
+
+def validate_siamese(siamese_net, dataloader, criterion, device):
+    siamese_net.eval()  # Set the model to evaluation mode
+    total_loss = 0.0
+    with torch.no_grad():  # Disable gradient calculation
+        for batch_idx, (anchor, positive, negative) in enumerate(dataloader):
+            anchor, positive, negative = anchor.to(device), positive.to(device), negative.to(device)
+
+            out_anchor, out_positive, out_negative = siamese_net(anchor, positive, negative)
+            loss = criterion(out_anchor, out_positive, out_negative)
+            total_loss += loss.item()
+
+    average_loss = total_loss / len(dataloader)
+    print(f"Validation Loss: {average_loss}")
+    return average_loss
 
 
 if __name__ == '__main__':
@@ -152,18 +160,28 @@ if __name__ == '__main__':
 
     triplet_data = load_market1501_triplets(data) 
     transform = transforms.Compose([transforms.Resize((100, 100)), transforms.ToTensor()])  # Adjust size as necessary
-    triplet_dataset = TripletDataset(triplet_data, "project_3\\bounding_box_train", transform)
-    dataloader = DataLoader(triplet_dataset, batch_size=32, shuffle=True)
 
-    # Calculate the number of batches
-    num_batches = len(dataloader)  # This directly gives the number of batches in the DataLoader
+    # Split data into training and validation sets (80-20 split)
+    split_idx = int(0.8 * len(triplet_data))
+    train_data = triplet_data[:split_idx]
+    val_data = triplet_data[split_idx:]
+    
+    train_dataset = TripletDataset(train_data, "project_3\\bounding_box_train", transform)
+    val_dataset = TripletDataset(val_data, "project_3\\bounding_box_train", transform)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+
+    num_batches = len(train_loader)  
     print(f"Number of batches per epoch: {num_batches}")
 
-    # Train the Siamese Network
-    for epoch in range(1):
+    for epoch in range(3):
         print(f"Epoch {epoch + 1}")
-        train_siamese(siamese_net, dataloader, optimizer, criterion, device)
+        train_siamese(siamese_net, train_loader, optimizer, criterion, device)
+        val_loss = validate_siamese(siamese_net, val_loader, criterion, device)
+        
+        # Save model periodically based on validation results
+        torch.save(siamese_net.state_dict(), f"siamese_network_reid_epoch{epoch+1}.pth")
+        print(f"Model saved after epoch {epoch + 1} with validation loss {val_loss:.4f}")
+
     
-    # Save the trained Siamese Network
-    torch.save(siamese_net.state_dict(), "siamese_network_reid.pth")
-    print("Siamese Network model saved.")
+    print("Training and validation complete.")
