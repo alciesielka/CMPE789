@@ -14,9 +14,7 @@ print("Faster R-CNN model loaded successfully.")
 
 print("Loading Siamese Network model...")
 siamese_net = Siamese_Network()
-siamese_net_weights = torch.load(
-        "siamese_network_reid3.pth", map_location="cuda" if torch.cuda.is_available() else "cpu", weights_only=True
-    )
+siamese_net_weights = torch.load("siamese_network_reid.pth", map_location="cuda" if torch.cuda.is_available() else "cpu", weights_only=True)
 siamese_net.load_state_dict(siamese_net_weights)
 siamese_net.eval()
 print("Siamese Network model loaded successfully.")
