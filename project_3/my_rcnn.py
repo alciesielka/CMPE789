@@ -51,11 +51,8 @@ def validate(model, val_data_path, image_folder):
                 labels = outputs[0]['labels']
                 scores = outputs[0]['scores']
 
-                print(f"Boxes: {boxes}")       # Print the detected bounding boxes
-                print(f"Labels: {labels}")     # Print the predicted labels
-                print(f"Scores: {scores}") 
             else:
-                print("No outputs from the model.")
+                print("No outputs")
                 continue
 
             losses = sum(loss for loss in loss_dict.values())
@@ -71,19 +68,19 @@ def validate(model, val_data_path, image_folder):
 
 if __name__ == '__main__':
     # Tianna
-    # gt_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS ground truth file
-    # image_folder = './MOT16-02/img1'  # Path to the folder containing images
+    gt_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS ground truth file
+    image_folder = './MOT16-02/img1'  # Path to the folder containing images
 
-    # val_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS validation files
-    # val_image_folder = './MOT16-02/img1'  # Path to the folder containing val images
+    val_file_path = './MOT16-05/gt/gt.txt'  # Path to the MOTS validation files
+    val_image_folder = './MOT16-05/img1'  # Path to the folder containing val images
 
     # Alex
 
-    gt_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'  # Path to the MOTS ground truth file
-    image_folder = 'project_3\\MOT16-02\\img1'  # Path to the folder containing images
+    # gt_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'  # Path to the MOTS ground truth file
+    # image_folder = 'project_3\\MOT16-02\\img1'  # Path to the folder containing images
 
-    val_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'  # Path to the MOTS validation files
-    val_image_folder = 'project_3\\MOT16-02\\img1'  # Path to the folder containing val images
+    # val_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'  # Path to the MOTS validation files
+    # val_image_folder = 'project_3\\MOT16-02\\img1'  # Path to the folder containing val images
 
     # MOTS - 80 classes + 1 background class
     num_classes = 81
@@ -105,7 +102,7 @@ if __name__ == '__main__':
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print(device)
 
-    num_epochs = 1
+    num_epochs = 5
 
     # load data
     transform = T.ToTensor()
@@ -115,7 +112,6 @@ if __name__ == '__main__':
     # init losses for later calculations
     total_loss = 0.0
     train_batch_count = 0
-    old_loss = 10000
 
     # for plotting analysis after training
     test_loss_arr = []
@@ -158,16 +154,8 @@ if __name__ == '__main__':
 
         print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss}, Val Loss {val_loss}")
 
-        if val_loss < old_loss:
-            model_name = "best.pth"
-            torch.save(model.state_dict(), model_name)
-
-        # if val_loss < old_loss:
-        #     model_name = str(epoch+1) + ".pth"
-        #     torch.save(model.state_dict(), model_name)
-
-        # old_loss = val_loss 
-        old_loss = val_loss
+        model_name = "epoch" + str(epoch) + "weights.pth"
+        torch.save(model.state_dict(), model_name)
 
     plot_loss(test_loss_arr, val_loss_arr, num_epochs)
 
