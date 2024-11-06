@@ -6,6 +6,9 @@ from my_tracker import load_faster_rcnn2, Siamese_Network
 from torchvision import transforms
 import torch.nn.functional as F
 
+import warnings
+
+warnings.filterwarnings('ignore')
 
 print("Loading Faster R-CNN model...")
 feature_extractor = load_faster_rcnn2("best.pth")
@@ -35,7 +38,6 @@ annotated_frames = []
 
 while cap.isOpened():
     ret, frame = cap.read()
-    print(len(annotated_frames))
     # video is not opening: check
     if not ret:
         print("End of video stream or error reading frame.")
@@ -103,19 +105,21 @@ while cap.isOpened():
                 matched_id = next_object_id
                 next_object_id += 1
 
+            if matched_id == 17:
             # Draw bounding box and ID
-            frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            frame = cv2.putText(frame, f'ID: {matched_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-            
+                frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                frame = cv2.putText(frame, f'ID: {matched_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
             torch.cuda.empty_cache()
             
     annotated_frames.append(frame)
+    print(len(annotated_frames))
     # cv2.imshow("Frame", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'): #exit
         break
 
 
+print("saving")
 
 height, width = annotated_frames.shape[:2]
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -124,5 +128,9 @@ for f in annotated_frames:
     out.write(f)
 out.release()
 
+print("saved")
+
 cap.release()
 cv2.destroyAllWindows()
+
+print("success")
