@@ -52,7 +52,7 @@ while cap.isOpened():
 
     for box, label, score in zip(boxes, labels, scores):
         # print(f"Confience score: {score}")
-        if score > 0.1: 
+        if score > 0.001: 
          
             x1, y1, x2, y2 = map(int, box)
             object_region = frame[y1:y2, x1:x2]
@@ -107,7 +107,8 @@ while cap.isOpened():
             frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
             frame = cv2.putText(frame, f'ID: {matched_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
             
-    torch.cuda.empty_cache()
+            torch.cuda.empty_cache()
+            
     annotated_frames.append(frame)
     # cv2.imshow("Frame", frame)
 
