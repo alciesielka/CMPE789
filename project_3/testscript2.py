@@ -14,7 +14,7 @@ print("Faster R-CNN model loaded successfully.")
 
 print("Loading Siamese Network model...")
 siamese_net = Siamese_Network()
-siamese_net_weights = torch.load("siamese_network_reid.pth", map_location="cuda" if torch.cuda.is_available() else "cpu", weights_only=True)
+siamese_net_weights = torch.load("siamese_network_reid_epoch3.pth", map_location="cuda" if torch.cuda.is_available() else "cpu", weights_only=True)
 siamese_net.load_state_dict(siamese_net_weights)
 siamese_net.eval()
 print("Siamese Network model loaded successfully.")
@@ -35,6 +35,7 @@ annotated_frames = []
 
 while cap.isOpened():
     ret, frame = cap.read()
+    print(len(annotated_frames))
     # video is not opening: check
     if not ret:
         print("End of video stream or error reading frame.")
@@ -50,24 +51,30 @@ while cap.isOpened():
     boxes, labels, scores = detections[0]['boxes'], detections[0]['labels'], detections[0]['scores']
 
     for box, label, score in zip(boxes, labels, scores):
-        if score > 0.5: 
+        # print(f"Confience score: {score}")
+        if score > 0.1: 
          
             x1, y1, x2, y2 = map(int, box)
             object_region = frame[y1:y2, x1:x2]
 
+            # 128 x 64 (h, w)
+
             # Siamese NEtwork here: grab??
+            object_region = cv2.resize(object_region, (100, 100))
             object_region_tensor = transforms.ToTensor()(object_region).unsqueeze(0)
 
-            # how should we use the Siamese Model to do the tracking??
-            with torch.no_grad():
-                object_features = feature_extractor(object_region_tensor)  # Use the backbone model ?? not sure
+            # # how should we use the Siamese Model to do the tracking??
+            # with torch.no_grad():
+            #     object_features = feature_extractor(object_region_tensor)  # Use the backbone model ?? not sure
 
-            # The output should contain features with the expected channel size
-            if '0' in object_features:  # Check the keys in the output
-                feature_tensor = object_features['0']  # Get the feature tensor
-            else:
-                print("No valid features found for the object region.")
-                continue
+            # # The output should contain features with the expected channel size
+            # if '0' in object_features:  # Check the keys in the output
+            #     feature_tensor = object_features['0']  # Get the feature tensor
+            # else:
+            #     print("No valid features found for the object region.")
+            #     continue
+
+            feature_tensor = object_region_tensor
 
             # Pass the feature tensor to the Siamese Network
             try:
@@ -97,9 +104,10 @@ while cap.isOpened():
                 next_object_id += 1
 
             # Draw bounding box and ID
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            cv2.putText(frame, f'ID: {matched_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-    
+            frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+            frame = cv2.putText(frame, f'ID: {matched_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            
+    torch.cuda.empty_cache()
     annotated_frames.append(frame)
     # cv2.imshow("Frame", frame)
 
