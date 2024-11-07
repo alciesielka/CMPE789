@@ -34,6 +34,7 @@ else:
 
 object_tracker = {}
 next_object_id = 0
+matched_id = None
 
 annotated_frames = []
 
@@ -63,6 +64,7 @@ while cap.isOpened():
             object_region = frame[y1:y2, x1:x2]
 
 
+            # Purple Filtering: 
             # Filter out non-purple pedestrians
             object_region_hsv = cv2.cvtColor(object_region, cv2.COLOR_BGR2HSV)
             purple_mask = cv2.inRange(object_region_hsv, lower_purple, upper_purple)
@@ -82,52 +84,38 @@ while cap.isOpened():
                 print(f"Error during feature extraction: {e}")
                 continue
 
-            # Matching and tracking logic
-            matched_id = None
-            min_distance = float('inf')
+            # Matching IDs
+            object_features = F.normalize(object_features, p=2, dim=1)
 
-            # Compare 
-            for obj_id, features in object_tracker.items():
-                distance = F.pairwise_distance(object_features, features).item()
-                if distance < min_distance and distance < 0.5:  # 0.5 is the threshold
-                    min_distance = distance
-                    matched_id = obj_id
+            # Match and track only for ID 0
+            if 0 in object_tracker:
+                # Get features of the already tracked object (ID 0)
+                tracked_features = F.normalize(object_tracker[0], p=2, dim=1)
+                distance = F.pairwise_distance(object_features, tracked_features).item()
 
-            if matched_id is not None:
-                # Update
-                object_tracker[matched_id] = object_features
+                if distance < 0.6:
+                    matched_id = 0  # ID 0 is matched
+                    object_tracker[0] = object_features  # Update features for ID 0
+                else:
+                    matched_id = None  # No match for ID 0
             else:
-                # Assign new object ID
-                object_tracker[next_object_id] = object_features
-                matched_id = next_object_id
+                # Initialize ID 0 if not yet assigned
+                object_tracker[0] = object_features
+                matched_id = 0
                 next_object_id += 1
 
-            #if matched_id == 11:
-            # Draw bounding box and ID
-            frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 1)
-            frame = cv2.putText(frame, f'ID: {matched_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
-            torch.cuda.empty_cache()
+            # Draw bounding box and ID only for matched ID 0
+            if matched_id == 0:
+                frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 1)
+                frame = cv2.putText(frame, f'ID: {matched_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
 
-    if (len(annotated_frames) == 50):
-        height, width = annotated_frames[0].shape[:2]
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter("tracking_video.mp4", fourcc, 30, (width, height))
-
-        # Write each frame to the video file
-        for frame in annotated_frames:
-            out.write(frame)
-    
-        # Release the video writer after saving
-        out.release()
-        print("Video saved successfully.")
-    
-        #annotated_frames = []
-
+    if matched_id == 0:
+        annotated_frames.append(frame)
 
             
     annotated_frames.append(frame)
     print(len(annotated_frames))
-    #cv2.imshow("Frame", frame)
+    cv2.imshow("Frame", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'): #exit
         break
