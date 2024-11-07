@@ -10,8 +10,9 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
+
 print("Loading Faster R-CNN model...")
-feature_extractor = load_faster_rcnn2("best.pth")
+feature_extractor = load_faster_rcnn2("fasterrcnn_mots_epoch2.pth")
 feature_extractor.eval()
 print("Faster R-CNN model loaded successfully.")
 
@@ -36,9 +37,11 @@ next_object_id = 0
 
 annotated_frames = []
 
+lower_purple = (120, 50, 50)   
+upper_purple = (150, 255, 255) 
+
 while cap.isOpened():
     ret, frame = cap.read()
-    # video is not opening: check
     if not ret:
         print("End of video stream or error reading frame.")
         break
@@ -54,33 +57,27 @@ while cap.isOpened():
 
     for box, label, score in zip(boxes, labels, scores):
         # print(f"Confience score: {score}")
-        if score > 0.001: 
+        if score > 0.2: 
          
             x1, y1, x2, y2 = map(int, box)
             object_region = frame[y1:y2, x1:x2]
 
-            # 128 x 64 (h, w)
 
-            # Siamese NEtwork here: grab??
+            # Filter out non-purple pedestrians
+            object_region_hsv = cv2.cvtColor(object_region, cv2.COLOR_BGR2HSV)
+            purple_mask = cv2.inRange(object_region_hsv, lower_purple, upper_purple)
+            # Check if purple region is dominant
+            if cv2.countNonZero(purple_mask) < 0.2 * purple_mask.size:
+                continue  # Skip 
+
+    
             object_region = cv2.resize(object_region, (100, 100))
             object_region_tensor = transforms.ToTensor()(object_region).unsqueeze(0)
 
-            # # how should we use the Siamese Model to do the tracking??
-            # with torch.no_grad():
-            #     object_features = feature_extractor(object_region_tensor)  # Use the backbone model ?? not sure
-
-            # # The output should contain features with the expected channel size
-            # if '0' in object_features:  # Check the keys in the output
-            #     feature_tensor = object_features['0']  # Get the feature tensor
-            # else:
-            #     print("No valid features found for the object region.")
-            #     continue
-
-            feature_tensor = object_region_tensor
 
             # Pass the feature tensor to the Siamese Network
             try:
-                object_features = siamese_net.forward_one(feature_tensor)  # Use forward_one here
+                object_features = siamese_net.forward_one(object_region_tensor)  # Use forward_one here
             except Exception as e:
                 print(f"Error during feature extraction: {e}")
                 continue
@@ -105,15 +102,32 @@ while cap.isOpened():
                 matched_id = next_object_id
                 next_object_id += 1
 
-            if matched_id == 17:
+            #if matched_id == 11:
             # Draw bounding box and ID
-                frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                frame = cv2.putText(frame, f'ID: {matched_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 1)
+            frame = cv2.putText(frame, f'ID: {matched_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
             torch.cuda.empty_cache()
+
+    if (len(annotated_frames) == 50):
+        height, width = annotated_frames[0].shape[:2]
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter("tracking_video.mp4", fourcc, 30, (width, height))
+
+        # Write each frame to the video file
+        for frame in annotated_frames:
+            out.write(frame)
+    
+        # Release the video writer after saving
+        out.release()
+        print("Video saved successfully.")
+    
+        #annotated_frames = []
+
+
             
     annotated_frames.append(frame)
     print(len(annotated_frames))
-    # cv2.imshow("Frame", frame)
+    #cv2.imshow("Frame", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'): #exit
         break
