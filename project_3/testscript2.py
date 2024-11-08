@@ -5,14 +5,17 @@ import torch
 from my_tracker import load_faster_rcnn2, Siamese_Network
 from torchvision import transforms
 import torch.nn.functional as F
-
+import os
+from PIL import Image
 import warnings
+import numpy as np
 
 warnings.filterwarnings('ignore')
 
 
 print("Loading Faster R-CNN model...")
-feature_extractor = load_faster_rcnn2("fasterrcnn_mots_epoch2.pth")
+# feature_extractor = load_faster_rcnn2("fasterrcnn_mots_epoch2.pth")
+feature_extractor = load_faster_rcnn2("epoch4weights.pth")
 feature_extractor.eval()
 print("Faster R-CNN model loaded successfully.")
 
@@ -24,13 +27,13 @@ siamese_net.eval()
 print("Siamese Network model loaded successfully.")
 
 # video from google drive
-video_path = "output_with_mask.mp4"
-cap = cv2.VideoCapture(video_path)
-if not cap.isOpened():
-    print("Error: Video file could not be opened.")
-    exit()
-else:
-    print("Video file opened successfully.")
+# video_path = "output_with_mask.mp4"
+# cap = cv2.VideoCapture(video_path)
+# if not cap.isOpened():
+#     print("Error: Video file could not be opened.")
+#     exit()
+# else:
+#     print("Video file opened successfully.")
 
 object_tracker = {}
 next_object_id = 0
@@ -41,12 +44,16 @@ annotated_frames = []
 lower_purple = (120, 50, 50)   
 upper_purple = (150, 255, 255) 
 
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        print("End of video stream or error reading frame.")
-        break
+frames_dir = 'MOT16-01/img1'
 
+images = os.listdir(frames_dir)
+images = sorted(images)
+
+for idx in range(0, len(images)):
+    frames_path = os.path.join(frames_dir, images[idx])
+    frame = Image.open(frames_path)
+
+    frame = np.array(frame)
     # Convert frame to tensor
     frame_tensor = transforms.ToTensor()(frame).unsqueeze(0)  
 
@@ -62,20 +69,9 @@ while cap.isOpened():
          
             x1, y1, x2, y2 = map(int, box)
             object_region = frame[y1:y2, x1:x2]
-
-
-            # Purple Filtering: 
-            # Filter out non-purple pedestrians
-            object_region_hsv = cv2.cvtColor(object_region, cv2.COLOR_BGR2HSV)
-            purple_mask = cv2.inRange(object_region_hsv, lower_purple, upper_purple)
-            # Check if purple region is dominant
-            if cv2.countNonZero(purple_mask) < 0.2 * purple_mask.size:
-                continue  # Skip 
-
     
             object_region = cv2.resize(object_region, (100, 100))
             object_region_tensor = transforms.ToTensor()(object_region).unsqueeze(0)
-
 
             # Pass the feature tensor to the Siamese Network
             try:
@@ -112,7 +108,6 @@ while cap.isOpened():
     if matched_id == 0:
         annotated_frames.append(frame)
 
-            
     annotated_frames.append(frame)
     print(len(annotated_frames))
     cv2.imshow("Frame", frame)
@@ -123,16 +118,12 @@ while cap.isOpened():
 
 print("saving")
 
-height, width = annotated_frames.shape[:2]
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-out = cv2.VideoWriter("tracking_video.mp4", fourcc, 30, (width, height))
+out = cv2.VideoWriter("tracking_video.mp4", fourcc, 30, (1080, 1920))
 for f in annotated_frames:
     out.write(f)
 out.release()
 
 print("saved")
-
-cap.release()
 cv2.destroyAllWindows()
-
 print("success")
