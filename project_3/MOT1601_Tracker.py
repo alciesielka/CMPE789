@@ -35,7 +35,7 @@ annotated_frames = []
 choose_id = True
 
 
-frames_dir = 'project_3\\MOT16-02\\img1'
+frames_dir = 'project_3\\MOT16-01\\img1'
 images = os.listdir(frames_dir)
 images = sorted(images)
 
@@ -53,7 +53,7 @@ with torch.no_grad():
 boxes, labels, scores = detections[0]['boxes'], detections[0]['labels'], detections[0]['scores']
 id_map = {}
 for i, (box, score) in enumerate(zip(boxes, scores)):
-    if score > 0.6:
+    if score > 0.3:
         x1, y1, x2, y2 = map(int, box)
         id_map[i] = (x1, y1, x2, y2)
         frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
@@ -89,7 +89,7 @@ for idx in range(1, len(images)):
     
     for box, label, score in zip(boxes, labels, scores):
         #print(f"Confience score: {score}")
-        if score > 0.6: 
+        if score > 0.2: 
          
             x1, y1, x2, y2 = map(int, box)
             object_region = frame[y1:y2, x1:x2]
@@ -97,7 +97,7 @@ for idx in range(1, len(images)):
             object_region = cv2.resize(object_region, (100, 100))
             object_region_tensor = transforms.ToTensor()(object_region).unsqueeze(0)
 
-            # TEST is this okay?
+            # TEST
             if last_position:
                 distance_to_last = np.linalg.norm(np.array(center_position) - np.array(last_position))
                 if distance_to_last > 30: # position thresh
@@ -153,7 +153,11 @@ for idx in range(1, len(images)):
 print("saving")
 for f in annotated_frames:
     out.write(f)
-
+# fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+# out = cv2.VideoWriter("tracking_video.mp4", fourcc, 30, (1080, 1920))
+# for f in annotated_frames:
+#     out.write(f)
+# out.release()
 
 print("saved")
 cv2.destroyAllWindows()

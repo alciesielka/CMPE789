@@ -10,7 +10,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from torch.utils.data import Dataset
-from my_utility import load_market1501_triplets
+from my_utility import load_market1501_triplets, plot_loss
 from PIL import Image  
 from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
 
@@ -46,7 +46,7 @@ class Siamese_Network(nn.Module):
 class TripletLoss(nn.Module):
     def __init__(self, margin=0.2):
         super(TripletLoss, self).__init__()
-        self.margin = margin
+        self.margin = torch.nn.Parameter(torch.tensor(1.0))
 
     def forward(self, anchor, positive, negative):
         pos_dist = F.pairwise_distance(anchor, positive, p=2)
@@ -114,13 +114,20 @@ def load_faster_rcnn2(faster_rcnn_path):
 
 def train_siamese(siamese_net, dataloader, optimizer, criterion, device):
     siamese_net.train()
+    total_loss = 0.0
     
     for batch_idx, (anchor, positive, negative) in enumerate(dataloader):
         anchor, positive, negative = anchor.to(device), positive.to(device), negative.to(device)
 
         out_anchor, out_positive, out_negative = siamese_net(anchor, positive, negative)
+
+        # Normalize the embeddings
+       # out_anchor = F.normalize(out_anchor, p=2, dim=1)
+       # out_positive = F.normalize(out_positive, p=2, dim=1)
+       # out_negative = F.normalize(out_negative, p=2, dim=1)
         # Triplet Loss
         loss = criterion(out_anchor, out_positive, out_negative)
+        total_loss += loss.item()
 
         optimizer.zero_grad()
         loss.backward()
@@ -128,6 +135,7 @@ def train_siamese(siamese_net, dataloader, optimizer, criterion, device):
         
         if batch_idx % 10 == 0:
             print(f"Batch {batch_idx}, Loss: {loss.item()}")
+    return total_loss / len(dataloader) 
 
 
 def validate_siamese(siamese_net, dataloader, criterion, device):
@@ -159,8 +167,14 @@ if __name__ == '__main__':
     data = 'project_3\\bounding_box_train'
 
     triplet_data = load_market1501_triplets(data) 
-    transform = transforms.Compose([transforms.Resize((100, 100)), transforms.ToTensor()])  # Adjust size as necessary
-
+    #transform = transforms.Compose([transforms.Resize((100, 100)), transforms.ToTensor()])  # Adjust size as necessary
+    transform = transforms.Compose([
+    transforms.Resize((100, 100)),
+    transforms.RandomHorizontalFlip(),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+    transforms.RandomRotation(10),
+    transforms.ToTensor(),
+])
     # Split data into training and validation sets (80-20 split)
     split_idx = int(0.8 * len(triplet_data))
     train_data = triplet_data[:split_idx]
@@ -173,15 +187,20 @@ if __name__ == '__main__':
 
     num_batches = len(train_loader)  
     print(f"Number of batches per epoch: {num_batches}")
-
-    for epoch in range(3):
+    train_losses = []
+    val_losses = []
+    num_epochs = 30
+    #scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    for epoch in range(num_epochs):
         print(f"Epoch {epoch + 1}")
-        train_siamese(siamese_net, train_loader, optimizer, criterion, device)
+        train_loss = train_siamese(siamese_net, train_loader, optimizer, criterion, device)
+        train_losses.append(train_loss)
         val_loss = validate_siamese(siamese_net, val_loader, criterion, device)
-        
+        val_losses.append(val_loss)
+        #scheduler.step()
         # Save model periodically based on validation results
-        torch.save(siamese_net.state_dict(), f"siamese_network_reid_epoch{epoch+1}.pth")
+        torch.save(siamese_net.state_dict(), f"siamese_network_reid_epoch_margin{epoch+1}.pth")
         print(f"Model saved after epoch {epoch + 1} with validation loss {val_loss:.4f}")
-
-    
+ 
+    plot_loss(train_losses, val_losses, num_epochs, "Siamese_Net_Loss" )
     print("Training and validation complete.")

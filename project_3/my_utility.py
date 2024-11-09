@@ -4,7 +4,7 @@ from torchvision.transforms import functional as F
 from PIL import Image
 import torch
 import numpy as np
-
+import matplotlib.pyplot as plt
 def parse_gt_file(file_path):
     gt_data = []
     with open(file_path, 'r') as f:
@@ -109,3 +109,16 @@ def load_market1501_triplets(image_folder):
             })
     
     return triplet_data
+
+def plot_loss(train_losses, val_losses, epoch, filename):
+    epoch = int(epoch)
+    x = np.arange(1, epoch+1)
+    plt.plot(x, train_losses, 'r--', label = 'train_loss')
+    plt.plot(x, val_losses, 'b--', label = 'val_loss')
+
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Loss vs Epoch")
+    plt.legend()
+
+    plt.savefig(f"./{filename}.png")
