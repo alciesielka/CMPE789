@@ -24,6 +24,7 @@ def plot_loss(test_losses, val_losses, epoch):
     plt.savefig("./test_val_loss.png")
 
 def validate(model, val_data_path, image_folder):
+    print("validating")
     model.eval()
     total_loss = 0.0
     val_batch_count = 0
@@ -68,11 +69,11 @@ def validate(model, val_data_path, image_folder):
 
 if __name__ == '__main__':
     # Tianna
-    gt_file_path = './MOT16-02/gt/gt.txt'  # Path to the MOTS ground truth file
-    image_folder = './MOT16-02/img1'  # Path to the folder containing images
+    gt_file_path = ['./MOT16-02/gt/gt.txt', './MOT16-11/gt/gt.txt']  # Path to the MOTS ground truth file
+    image_folder = ['./MOT16-02/img1', './MOT16-11/img1']  # Path to the folder containing images
 
-    val_file_path = './MOT16-05/gt/gt.txt'  # Path to the MOTS validation files
-    val_image_folder = './MOT16-05/img1'  # Path to the folder containing val images
+    val_file_path = './MOT16-04/gt/gt.txt'  # Path to the MOTS validation files
+    val_image_folder = './MOT16-04/img1'  # Path to the folder containing val images
 
     # Alex
 
@@ -104,10 +105,10 @@ if __name__ == '__main__':
 
     num_epochs = 5
 
-    # load data
-    transform = T.ToTensor()
-    gt_data = parse_gt_file(gt_file_path)
-    frame_ids = sorted(set(obj['frame_id'] for obj in gt_data))
+    # # load data
+    # transform = T.ToTensor()
+    # gt_data = parse_gt_file(gt_file_path)
+    # frame_ids = sorted(set(obj['frame_id'] for obj in gt_data))
 
     # init losses for later calculations
     total_loss = 0.0
@@ -121,29 +122,40 @@ if __name__ == '__main__':
         model.train()
         model = model.to(device)
 
-        for frame_id in frame_ids:
-            image, boxes, labels = prepare_data(gt_data, image_folder, frame_id)
-        
-            augmented = augment_data(image)
-            image_cuda = [T.ToTensor()(augmented).to(device)]
+        for dataset in range(0, len(gt_file_path)):
 
-            box_tensor = torch.tensor(boxes, dtype=torch.float32).to(device)
-            label_tensor = torch.tensor(labels, dtype=torch.int64).to(device)
-            targets = [{"boxes" : box_tensor, "labels" : label_tensor}]
+            print(gt_file_path[dataset])
+            print(image_folder[dataset])
+            # load data
+            transform = T.ToTensor()
+            gt_data = parse_gt_file(gt_file_path[dataset])
+            frame_ids = []
+            frame_ids = sorted(set(obj['frame_id'] for obj in gt_data))
 
-            loss_dict = model(image_cuda, targets)
+            for frame_id in frame_ids:
+                image, boxes, labels = prepare_data(gt_data, image_folder[dataset], frame_id)
+            
+                augmented = augment_data(image)
+                image_cuda = [T.ToTensor()(augmented).to(device)]
 
-            optimizer.zero_grad()
+                box_tensor = torch.tensor(boxes, dtype=torch.float32).to(device)
+                label_tensor = torch.tensor(labels, dtype=torch.int64).to(device)
+                targets = [{"boxes" : box_tensor, "labels" : label_tensor}]
 
-            losses = sum(loss for loss in loss_dict.values())
+                loss_dict = model(image_cuda, targets)
 
-            losses.backward()
-            optimizer.step()
+                optimizer.zero_grad()
 
-            total_loss += losses.item()
-            train_batch_count += 1
+                losses = sum(loss for loss in loss_dict.values())
 
-            torch.cuda.empty_cache()
+                losses.backward()
+                optimizer.step()
+
+                total_loss += losses.item()
+                train_batch_count += 1
+
+                torch.cuda.empty_cache()
+
 
         epoch_loss = total_loss / train_batch_count
         
