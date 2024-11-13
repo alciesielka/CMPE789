@@ -76,7 +76,6 @@ if __name__ == '__main__':
     val_image_folder = './MOT16-04/img1'  # Path to the folder containing val images
 
     # Alex
-
     # gt_file_path = 'project_3\\MOT16-02\\gt\\gt.txt'  # Path to the MOTS ground truth file
     # image_folder = 'project_3\\MOT16-02\\img1'  # Path to the folder containing images
 
@@ -104,11 +103,6 @@ if __name__ == '__main__':
     print(device)
 
     num_epochs = 5
-
-    # # load data
-    # transform = T.ToTensor()
-    # gt_data = parse_gt_file(gt_file_path)
-    # frame_ids = sorted(set(obj['frame_id'] for obj in gt_data))
 
     # init losses for later calculations
     total_loss = 0.0

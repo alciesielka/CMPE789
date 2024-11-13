@@ -1,206 +1,158 @@
-import numpy as np
-import torchvision
-import torch.optim as optim
-import torch.nn as nn
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from torchvision import transforms
+# not implemented yet
+
+import cv2
 import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
+from project_3.my_simnet import load_faster_rcnn2, Siamese_Network
+from torchvision import transforms
 import torch.nn.functional as F
-from torch.utils.data import Dataset
-from my_utility import load_market1501_triplets, plot_loss
-from PIL import Image  
-from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
-
-class Siamese_Network(nn.Module):
-    def __init__(self):
-        super(Siamese_Network, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3) # 3
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=3)
-        self.conv3 = nn.Conv2d(128, 128, kernel_size=3)
-
-        self.fc_input_size = None  # Placeholder
-
-        self.fc1 = nn.Linear(56448, 256)
-        self.fc2 = nn.Linear(256, 256)
-
-    def forward_one(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        x = F.relu(self.conv3(x))
-
-        x = x.view(x.size(0), -1)  #  x = x.view(-1, 128 * 22 * 22)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
-   
-    def forward(self, input1, input2, input3):
-        output1 = self.forward_one(input1)
-        output2 = self.forward_one(input2)
-        output3 = self.forward_one(input3)
-        return output1, output2, output3
+import os
+from PIL import Image
+import warnings
+import numpy as np
+warnings.filterwarnings('ignore')
 
 
-class TripletLoss(nn.Module):
-    def __init__(self, margin=0.2):
-        super(TripletLoss, self).__init__()
-        self.margin = torch.nn.Parameter(torch.tensor(1.0))
+print("Loading Faster R-CNN model...")
+feature_extractor = load_faster_rcnn2("fasterrcnn_mots_epoch2.pth")
+feature_extractor.eval()
+print("Faster R-CNN model loaded successfully.")
 
-    def forward(self, anchor, positive, negative):
-        pos_dist = F.pairwise_distance(anchor, positive, p=2)
-        neg_dist = F.pairwise_distance(anchor, negative, p=2)
-        loss = F.relu(pos_dist - neg_dist + self.margin).mean()
-        return loss
-
-class TripletDataset(Dataset):
-    def __init__(self, triplet_data, image_folder, transform=None):
-        self.triplet_data = triplet_data
-        self.image_folder = image_folder
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.triplet_data)
-
-    def __getitem__(self, idx):
-        triplet = self.triplet_data[idx]
-        anchor_frame, anchor_id = triplet['anchor']
-        positive_frame, positive_id = triplet['positive']
-        negative_frame, negative_id = triplet['negative']
-
-        anchor_image = Image.open(f"{self.image_folder}/{anchor_frame}").convert("RGB")
-        positive_image = Image.open(f"{self.image_folder}/{positive_frame}").convert("RGB")
-        negative_image = Image.open(f"{self.image_folder}/{negative_frame}").convert("RGB")
-
-        if self.transform:
-            anchor_image = self.transform(anchor_image)
-            positive_image = self.transform(positive_image)
-            negative_image = self.transform(negative_image)
-
-        return anchor_image, positive_image, negative_image
+print("Loading Siamese Network model...")
+siamese_net = Siamese_Network()
+siamese_net_weights = torch.load("siamese_network_reid_epoch_margin3.pth", map_location="cuda" if torch.cuda.is_available() else "cpu", weights_only=True)
+siamese_net.load_state_dict(siamese_net_weights)
+siamese_net.eval()
+print("Siamese Network model loaded successfully.")
 
 
-def load_faster_rcnn(faster_rcnn_path):
-    model = fasterrcnn_resnet50_fpn(weights='DEFAULT')
-    num_classes = 81
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+object_tracker = {}
+next_object_id = 0
+matched_id = None
+last_position = None
+
+annotated_frames = []
+choose_id = True
+
+
+frames_dir = 'project_3\\MOT16-01\\img1'
+images = os.listdir(frames_dir)
+images = sorted(images)
+
+########### CHOOSE PERSON TO TRACK ##################
+frame_height, frame_width = None, None
+
+first_frame_path = os.path.join(frames_dir, images[0])
+frame = Image.open(first_frame_path)
+frame = np.array(frame)
+frame_tensor = transforms.ToTensor()(frame).unsqueeze(0)
+
+with torch.no_grad():
+    detections = feature_extractor(frame_tensor)
+
+boxes, labels, scores = detections[0]['boxes'], detections[0]['labels'], detections[0]['scores']
+id_map = {}
+for i, (box, score) in enumerate(zip(boxes, scores)):
+    if score > 0.3:
+        x1, y1, x2, y2 = map(int, box)
+        id_map[i] = (x1, y1, x2, y2)
+        frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
+        frame = cv2.putText(frame, f'ID: {i}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+cv2.imshow("Select ID", frame)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+selected_id = int(input("Enter the ID of the object you want to track from the displayed bounding boxes: "))
+last_position = ((id_map[selected_id][0] + id_map[selected_id][2]) // 2, (id_map[selected_id][1] + id_map[selected_id][3]) // 2)
+########### CHOOSE PERSON TO TRACK ##################
+
+# Periodicially save video 
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = None
+
+for idx in range(1, len(images)):
+    frames_path = os.path.join(frames_dir, images[idx])
+    frame = Image.open(frames_path)
+    frame = np.array(frame)
+    if frame_height is None or frame_width is None:
+        frame_height, frame_width = frame.shape[:2]
+        out = cv2.VideoWriter("tracking_video_checkpoint.mp4", fourcc, 30, (frame_width, frame_height))
+
+
+    frame_tensor = transforms.ToTensor()(frame).unsqueeze(0)  
+
+    with torch.no_grad():
+        detections = feature_extractor(frame_tensor)
+
+    boxes, labels, scores = detections[0]['boxes'], detections[0]['labels'], detections[0]['scores']
     
+    for box, label, score in zip(boxes, labels, scores):
+        #print(f"Confience score: {score}")
+        if score > 0.2: 
+         
+            x1, y1, x2, y2 = map(int, box)
+            object_region = frame[y1:y2, x1:x2]
+            center_position = ((x1 + x2) // 2, (y1 + y2) // 2)
+            object_region = cv2.resize(object_region, (100, 100))
+            object_region_tensor = transforms.ToTensor()(object_region).unsqueeze(0)
+
+            # TEST
+            if last_position:
+                distance_to_last = np.linalg.norm(np.array(center_position) - np.array(last_position))
+                if distance_to_last > 30: # position thresh
+                    continue  # Skip if too far from last known location
     
-    model.load_state_dict(torch.load(faster_rcnn_path, map_location="cuda" if torch.cuda.is_available() else "cpu"))
-    for param in model.parameters():
-        param.requires_grad = False
-    return model.backbone  
-
-
-
-def load_faster_rcnn2(faster_rcnn_path):
-    model = fasterrcnn_resnet50_fpn(weights='DEFAULT')
-    num_classes = 81 
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-    model.load_state_dict(torch.load(faster_rcnn_path, map_location="cuda" if torch.cuda.is_available() else "cpu"))
-    
-    for param in model.parameters():
-        param.requires_grad = False  # Freeze all layers
-
-    for param in model.roi_heads.box_predictor.parameters():
-        param.requires_grad = True  # Allow training for the box predictor
-    model.eval()
-    return model  # Return the entire model
-
-
-
-def train_siamese(siamese_net, dataloader, optimizer, criterion, device):
-    siamese_net.train()
-    total_loss = 0.0
-    
-    for batch_idx, (anchor, positive, negative) in enumerate(dataloader):
-        anchor, positive, negative = anchor.to(device), positive.to(device), negative.to(device)
-
-        out_anchor, out_positive, out_negative = siamese_net(anchor, positive, negative)
-
-        # Normalize the embeddings
-       # out_anchor = F.normalize(out_anchor, p=2, dim=1)
-       # out_positive = F.normalize(out_positive, p=2, dim=1)
-       # out_negative = F.normalize(out_negative, p=2, dim=1)
-        # Triplet Loss
-        loss = criterion(out_anchor, out_positive, out_negative)
-        total_loss += loss.item()
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
         
-        if batch_idx % 10 == 0:
-            print(f"Batch {batch_idx}, Loss: {loss.item()}")
-    return total_loss / len(dataloader) 
+            # Pass the feature tensor to the Siamese Network
+            object_features = siamese_net.forward_one(object_region_tensor)
+
+            # Matching IDs
+            with torch.no_grad():
+                object_features = F.normalize(object_features, p=2, dim=1)
+
+            # Match and track only for ID 0 
+            if selected_id in object_tracker:
+                # Get features of the already tracked object (ID 0)
+                tracked_features = F.normalize(object_tracker[selected_id], p=2, dim=1)
+                distance = F.pairwise_distance(object_features, tracked_features).item()
+
+                if distance < 0.5:
+                    matched_id = selected_id  # ID 0 is matched
+                    last_position = center_position
+                    object_tracker[selected_id] = object_features  # Update features for ID 0
+                else:
+                    matched_id = None  # No match for ID 0
+            elif selected_id not in object_tracker:
+                # Initialize ID 0 if not yet assigned
+                object_tracker[selected_id] = object_features
+                matched_id =selected_id
+
+            if matched_id == selected_id: 
+                frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 1)
+                frame = cv2.putText(frame, f'ID: {selected_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+                break# exit after finding first BB
+
+    annotated_frames.append(frame)
+
+    #print(len(annotated_frames))
+    print(f"Processed frame {idx + 1}/{len(images)}")
+    cv2.imshow("Frame", frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'): #exit
+        break
+
+    # Save video every 10 frames
+    if idx % 10 == 0:
+        print(f"Saving checkpoint at frame {idx}")
+        for f in annotated_frames:
+            out.write(f)
+        annotated_frames = []
 
 
-def validate_siamese(siamese_net, dataloader, criterion, device):
-    siamese_net.eval()  # Set the model to evaluation mode
-    total_loss = 0.0
-    with torch.no_grad():  # Disable gradient calculation
-        for batch_idx, (anchor, positive, negative) in enumerate(dataloader):
-            anchor, positive, negative = anchor.to(device), positive.to(device), negative.to(device)
+print("saving")
+for f in annotated_frames:
+    out.write(f)
 
-            out_anchor, out_positive, out_negative = siamese_net(anchor, positive, negative)
-            loss = criterion(out_anchor, out_positive, out_negative)
-            total_loss += loss.item()
-
-    average_loss = total_loss / len(dataloader)
-    print(f"Validation Loss: {average_loss}")
-    return average_loss
-
-
-if __name__ == '__main__':
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    # Initialize Siamese Network and optimizer
-    siamese_net = Siamese_Network().to(device)
-    criterion = TripletLoss(margin=1.0)
-    optimizer = optim.Adam(siamese_net.parameters(), lr=1e-4)
-
-    # Prepare triplet data and create DataLoader
-    # NEED TO USE MARKET AND NOT MOTS
-    data = 'project_3\\bounding_box_train'
-
-    triplet_data = load_market1501_triplets(data) 
-    #transform = transforms.Compose([transforms.Resize((100, 100)), transforms.ToTensor()])  # Adjust size as necessary
-    transform = transforms.Compose([
-    transforms.Resize((100, 100)),
-    transforms.RandomHorizontalFlip(),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-    transforms.RandomRotation(10),
-    transforms.ToTensor(),
-])
-    # Split data into training and validation sets (80-20 split)
-    split_idx = int(0.8 * len(triplet_data))
-    train_data = triplet_data[:split_idx]
-    val_data = triplet_data[split_idx:]
-    
-    train_dataset = TripletDataset(train_data, "project_3\\bounding_box_train", transform)
-    val_dataset = TripletDataset(val_data, "project_3\\bounding_box_train", transform)
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-
-    num_batches = len(train_loader)  
-    print(f"Number of batches per epoch: {num_batches}")
-    train_losses = []
-    val_losses = []
-    num_epochs = 30
-    #scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
-    for epoch in range(num_epochs):
-        print(f"Epoch {epoch + 1}")
-        train_loss = train_siamese(siamese_net, train_loader, optimizer, criterion, device)
-        train_losses.append(train_loss)
-        val_loss = validate_siamese(siamese_net, val_loader, criterion, device)
-        val_losses.append(val_loss)
-        #scheduler.step()
-        # Save model periodically based on validation results
-        torch.save(siamese_net.state_dict(), f"siamese_network_reid_epoch_margin{epoch+1}.pth")
-        print(f"Model saved after epoch {epoch + 1} with validation loss {val_loss:.4f}")
- 
-    plot_loss(train_losses, val_losses, num_epochs, "Siamese_Net_Loss" )
-    print("Training and validation complete.")
+print("saved")
+cv2.destroyAllWindows()
+print("success")

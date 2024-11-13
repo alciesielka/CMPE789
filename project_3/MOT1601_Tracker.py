@@ -2,7 +2,7 @@
 
 import cv2
 import torch
-from my_tracker import load_faster_rcnn2, Siamese_Network
+from project_3.my_simnet import load_faster_rcnn2, Siamese_Network
 from torchvision import transforms
 import torch.nn.functional as F
 import os
@@ -13,14 +13,13 @@ warnings.filterwarnings('ignore')
 
 
 print("Loading Faster R-CNN model...")
-# feature_extractor = load_faster_rcnn2("fasterrcnn_mots_epoch2.pth")
 feature_extractor = load_faster_rcnn2("fasterrcnn_mots_epoch2.pth")
 feature_extractor.eval()
 print("Faster R-CNN model loaded successfully.")
 
 print("Loading Siamese Network model...")
 siamese_net = Siamese_Network()
-siamese_net_weights = torch.load("siamese_network_reid_epoch_margin4.pth", map_location="cuda" if torch.cuda.is_available() else "cpu", weights_only=True)
+siamese_net_weights = torch.load("siamese_network_reid_epoch_margin3.pth", map_location="cuda" if torch.cuda.is_available() else "cpu", weights_only=True)
 siamese_net.load_state_dict(siamese_net_weights)
 siamese_net.eval()
 print("Siamese Network model loaded successfully.")
