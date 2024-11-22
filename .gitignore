@@ -2,7 +2,8 @@
 *.pth
 /models
 driving_log.csv
-
+*.mp4
+*.zip
 /project_3/MOT16-02
 /project_3/bounding_box_train
 /project_3/_pycache_/my_utility.cpython-310.pyc
