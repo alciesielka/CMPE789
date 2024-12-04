@@ -39,67 +39,7 @@ def setup_traffic_lights(world, duration=10):
             light.set_green_time(duration)
             light.set_yellow_time(duration)
             light.set_red_time(duration)
-
-def setup_peds(world, num_pedestrians=5):
-    blueprint_library = world.get_blueprint_library()
-    walker_bp_list = blueprint_library.filter('walker.pedestrian.*')
-    controller_bp = blueprint_library.find('controller.ai.walker')
-
-    pedestrian_actors = []
-    for _ in range(num_pedestrians):
-        spawn_point = world.get_random_location_from_navigation()
-        if spawn_point:
-            # Spawn walker
-            walker_bp = random.choice(walker_bp_list)
-            walker = world.spawn_actor(walker_bp, carla.Transform(spawn_point))
-            if not walker:
-                print("Failed to spawn walker")
-                continue
-            else:
-                print("spawned walker")
-            
-            # Spawn controller
-            controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
-            if not controller:
-                print("Failed to spawn controller")
-                walker.destroy()  # Clean up walker if controller fails
-                continue
-            else:
-                print("spawned controller")
-
-
-            try:
-                controller.start()
-                controller.go_to_location(world.get_random_location_from_navigation())
-                controller.set_max_speed(random.uniform(1.0, 2.5))  # Random speed
-                pedestrian_actors.append((walker, controller))
-            except RuntimeError as e:
-                print(f"Controller error: {e}")
-                walker.destroy()
-                controller.destroy()
-                continue
-            
-            # Start walking
-            # controller.start()
-            # controller.go_to_location(world.get_random_location_from_navigation())
-            # controller.set_max_speed(random.uniform(1.0, 2.5))  # Random speed between 1.0 and 2.5 m/s
-            
-            # pedestrian_actors.append((walker, controller))
-    return pedestrian_actors
-
-    # spawn_point = world.get_random_location_from_navigation()
-    # # spawn walker
-    # walker = world.spawn_actor(walker_bp, spawn_point)
-    # # spawn controller
-    # controller = world.spawn_actor(controller_bp, carla.Transform(), walker.id)
-    # # start walking
-    # controller.start()
-    # # set destination
-    # controller.go_to_location(destination_point)
-    # # set walking speed (in m/s)
-    # controller.set_max_speed(speed)
-    # # stop walking
-    # controller.stop()
+    return traffic_lights
 
 
 def setup_stop_sign(world):
@@ -142,23 +82,100 @@ def setup_sensors(world, vehicle):
 #        carla.Transform(),
 #        attach_to=self.vehicle)
 
-    
+def setup_peds_rand(world, num_pedestrians=5, min_distance=5.0):
+    blueprint_library = world.get_blueprint_library()
+    walker_bp_list = blueprint_library.filter('walker.pedestrian.*')
+    controller_bp = blueprint_library.find('controller.ai.walker')
+
+    pedestrian_actors = []
+
+    for _ in range(num_pedestrians):
+
+        spawn_point = world.get_random_location_from_navigation()
+
+        # Spawn walker
+        walker_bp = random.choice(walker_bp_list)
+        
+        walker = world.spawn_actor(walker_bp, carla.Transform(spawn_point))
+        print("Spawned walker")
+
+        # Spawn controller
+        controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
+        print("Spawned controller")
+
+        # Start the controller and make the walker move
+        try:
+            controller.start()
+            target_location = world.get_random_location_from_navigation()
+            controller.go_to_location(target_location)
+            controller.set_max_speed(random.uniform(1.0, 2.5))
+            pedestrian_actors.append((walker, controller))
+            print(f"Controller started for walker at {walker.get_location()}")
+        except RuntimeError as e:
+            print(f"Error during controller start: {e}")
+            walker.destroy()
+            controller.destroy()
+
+    # spawn_point = world.get_random_location_from_navigation()
+    # # spawn walker
+    # walker = world.spawn_actor(walker_bp, spawn_point)
+    # # spawn controller
+    # controller = world.spawn_actor(controller_bp, carla.Transform(), walker.id)
+    # # start walking
+    # controller.start()
+    # # set destination
+    # controller.go_to_location(destination_point)
+    # # set walking speed (in m/s)
+    # controller.set_max_speed(speed)
+    # # stop walking
+    # controller.stop()
+
+    return pedestrian_actors
+
+
+
+def setup_spectator_view(world, target_actor=None):
+    # Get the spectator camera
+    spectator = world.get_spectator()
+
+    if target_actor:
+        target_location = target_actor.get_location()
+
+        location = carla.Location(x=target_location.x, y=target_location.y, z=target_location.z + 10)  # 10 meters above the target
+        rotation = carla.Rotation(pitch=-30, yaw=0)  # Slight tilt to view the actor better
+        spectator.set_transform(carla.Transform(location, rotation))
+        print(f"Spectator view set above the stop sign at location: {location}")
+    else:
+        # default view of the town (above)
+        location = carla.Location(x=0, y=0, z=100)  # Height of 100 meters above the town
+        rotation = carla.Rotation(pitch=-90)  # Looking straight down at the town
+
+        # Apply the transformation
+        spectator.set_transform(carla.Transform(location, rotation))
+        print("Spectator view set above the town.")
+
+
+
 
 def main():
     client = carla.Client('localhost', 2000)
     client.set_timeout(30)
     world = build_world(client)
+    blueprint_library = world.get_blueprint_library()
+    for blueprint in blueprint_library:
+        print(blueprint.id)
 
-    
     main_veh = setup_vehicle(world, 'vehicle.tesla.model3')
     other_veh = [setup_vehicle(world, 'vehicle.audi.tt'),
         setup_vehicle(world, 'vehicle.bmw.grandtourer')]
     
     # traffic lights
-    setup_traffic_lights(world, duration=15)
+    # traffic = spawn_traffic_light(world)
+    traffic_ligts = setup_traffic_lights(world, duration=15)
+    setup_spectator_view(world, target_actor= traffic_ligts[0])
 
     # pedestrians ( "having issues")
-    setup_peds(world, num_pedestrians=2)
+    setup_peds_rand(world, num_pedestrians=2)
 
     # stop sign
     setup_stop_sign(world)
