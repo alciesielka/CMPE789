@@ -1,20 +1,18 @@
 import carla
 
-def list_traffic_blueprints(world):
-    # Get the blueprint library from the world
+
+def list_all_blueprints(client):
+    # Connect to the Carla world
+    world = client.get_world()
     blueprint_library = world.get_blueprint_library()
 
-    # List all traffic-related blueprints by filtering with 'traffic'
-    traffic_blueprints = blueprint_library.filter('traffic')
+    # Get all blueprints in the library (using an empty filter to list everything)
+    blueprints = blueprint_library.filter('stop')
 
-    # Print out the ID and type of each traffic-related blueprint
-    for blueprint in traffic_blueprints:
-        print(f"ID: {blueprint.id}, Type: {blueprint.type_id}")
+    # Print the ID of each blueprint
+    for bp in blueprints:
+        print(f"Blueprint ID: {bp.id}")
 
-# Example usage (this assumes you have an active Carla client connection)
-client = carla.Client('localhost', 2000)  # Connect to Carla server
-client.set_timeout(10)  # Optional timeout in seconds for the connection
-world = client.get_world()  # Get the world
-
-# Now call the function to list traffic-related blueprints
-list_traffic_blueprints(world)
+# Example usage (make sure the Carla server is running and the client is connected)
+client = carla.Client('localhost', 2000)  # Change IP/port if needed
+list_all_blueprints(client)

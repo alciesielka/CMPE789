@@ -18,5 +18,6 @@ What to get
 
 # Running Carla
 1. Navigate to file location
+    cd C:\Users\django\Documents\Alex\WindowsNoEditor
 2. Run in terminal: 
     .\CarlaUE4

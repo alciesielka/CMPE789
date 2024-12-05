@@ -44,9 +44,9 @@ def setup_traffic_lights(world, duration=10):
 
 def setup_stop_sign(world):
     blueprint_library = world.get_blueprint_library()
-    # static.prop.streetsign01
-    # static.prop.streetsign04
-    stop_sign_bp = blueprint_library.find('static.prop.streetsign01')
+
+
+    stop_sign_bp = blueprint_library.find('static.prop.streetsign')
     #stop_sign_bp = blueprint_library.find('static.prop.street_sign.stop')
     
     # Use a random spawn point for the stop sign
@@ -155,15 +155,28 @@ def setup_spectator_view(world, target_actor=None):
         print("Spectator view set above the town.")
 
 
+def clear_world(world):
+    # Get all actors in the world
+    actors = world.get_actors()
 
+    for actor in actors:
+        # Exclude the spectator (if necessary)
+        if actor.type_id == 'spectator':
+            continue
+        # Destroy the actor
+        actor.destroy()
+
+    print("All actors have been cleared.")
 
 def main():
     client = carla.Client('localhost', 2000)
     client.set_timeout(30)
     world = build_world(client)
+
+    #clear_world(world) # doesnt work well
     blueprint_library = world.get_blueprint_library()
-    for blueprint in blueprint_library:
-        print(blueprint.id)
+   # for blueprint in blueprint_library:
+    #    print(blueprint.id)
 
     main_veh = setup_vehicle(world, 'vehicle.tesla.model3')
     other_veh = [setup_vehicle(world, 'vehicle.audi.tt'),
@@ -172,13 +185,14 @@ def main():
     # traffic lights
     # traffic = spawn_traffic_light(world)
     traffic_ligts = setup_traffic_lights(world, duration=15)
-    setup_spectator_view(world, target_actor= traffic_ligts[0])
 
     # pedestrians ( "having issues")
-    setup_peds_rand(world, num_pedestrians=2)
+    # setup_peds_rand(world, num_pedestrians=2)
 
     # stop sign
-    setup_stop_sign(world)
+    sign = setup_stop_sign(world)
+    setup_spectator_view(world, sign)
+
 
     # sensors
     sensors = setup_sensors(world, main_veh)
