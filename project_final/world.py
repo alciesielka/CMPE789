@@ -168,6 +168,17 @@ def clear_world(world):
 
     print("All actors have been cleared.")
 
+def set_spectator_view_veh(world, vehicle):
+    spectator = world.get_spectator()  
+    transform = vehicle.get_transform()  
+    
+    spectator_location = transform.location + carla.Location(x=-10, z=5)  # Behind and above the vehicle
+    spectator_transform = carla.Transform(spectator_location, transform.rotation)
+    
+    spectator.set_transform(spectator_transform)
+    print("Spectator camera set to follow the vehicle.")
+
+
 def main():
     client = carla.Client('localhost', 2000)
     client.set_timeout(30)
@@ -191,7 +202,8 @@ def main():
 
     # stop sign
     sign = setup_stop_sign(world)
-    setup_spectator_view(world, sign)
+    # setup_spectator_view(world, main_veh)
+    camera_view = set_spectator_view_veh(world, main_veh)
 
 
     # sensors

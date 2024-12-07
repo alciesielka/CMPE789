@@ -2,6 +2,7 @@ from calculate_steering import calculate_steering, calculate_steering_to_waypoin
 from yolo import detect_objects
 import carla
 
+
 def plan_action(lane_boundaries, objects, traffic_light_state, current_location, next_waypoint_location):
     action = {'steer':0.0, 'throttle':0.5, 'brake':0.0}
 
@@ -37,9 +38,3 @@ def compute_control(action):
 
     return control
 
-
-def main():
-    vehicle.apply_control(control_signal)
-
-if __name__== '__main__':
-    main()
