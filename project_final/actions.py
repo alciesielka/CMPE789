@@ -11,10 +11,10 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
         action['steer'] = calculate_steering(lane_boundaries)
     
     # avoid obstacles
-
-    if any([obj.distance < 10 for obj in objects]): # we can adjust threshold
-        action['throttle'] = 0.0
-        action['brake'] = 1.0
+    if objects:
+        if any([obj.distance < 10 for obj in objects]): # we can adjust threshold
+            action['throttle'] = 0.0
+            action['brake'] = 1.0
 
     if traffic_light_state == carla.TrafficLightState.Red:
         action['throttle'] = 0.0

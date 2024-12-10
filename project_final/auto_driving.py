@@ -13,32 +13,37 @@ def camera_callback(data):
     return yolo_detections
 
 
-def autonomous_driving(world, vehicle, sensors, destination):
+def autonomous_driving(world, carla_map, vehicle, sensors, destination):
     current_waypoint_index = 0 
     objects = []
+    # Get Sensor Data
+    camera_sensor = sensors['lane_camera'] # may need to pull out of loop - T
+
+    # Procecss Sensor Data        
+    objects = camera_sensor.listen(lambda data: camera_callback(data)) # may need to pull out of loop - T
 
     while True:
 
-        # Get Sensor Data
-        camera_sensor = sensors['lane_camera'] # may need to pull out of loop - T
-
-        # Procecss Sensor Data        
-        camera_sensor.listen(lambda data: camera_callback(data)) # may need to pull out of loop - T
-
+        print(objects)
         # Get the Current and Next Waypoint
         current_location = vehicle.get_location()
-        start_waypoint = world.get_waypoint(current_location)
-        final_waypoint = world.get_waypoint(destination)
-        next_waypoint_location = world.waypoint.next(2.0)
+        start_waypoint = carla_map.get_waypoint(current_location)
+        final_waypoint = carla_map.get_waypoint(destination)
+        # next_waypoint_location = carla_map.waypoint.next(2.0)
 
-        print(f"Starting Route from : {start_waypoint.transform.location}")
-        print(f"-> -> -> to : {destination.transform.location}")
-        print(f"Next waypoint (2m ahead): {destination.transform.location}")
+        next_waypoint = start_waypoint.next(2.0)[0]  # Get the first waypoint 2 meters ahead
+        next_waypoint_location = next_waypoint.transform.location
 
-        lane_boundaries = 1
+
+        print(f"Starting Route from : {current_location}")
+        print(f"-> -> -> to : {final_waypoint}")
+        print(f"Next waypoint (2m ahead): {next_waypoint}")
+
+        lane_boundaries = False
+        traffic_light_state = False
 
         # Plan Action (consider depth/distancce for objects on road)
-        action = plan_action(lane_boundaries = lane_boundaries, obkjects = objects, traffic_light_state= traffic_light_state, current_location= current_location, next_waypoint_location=next_waypoint_location)
+        action = plan_action(lane_boundaries = lane_boundaries, objects = objects, traffic_light_state= traffic_light_state, current_location= current_location, next_waypoint_location=next_waypoint_location)
         control_signal = compute_control(action)
 
         # Execute Control
@@ -56,13 +61,11 @@ def autonomous_driving(world, vehicle, sensors, destination):
         else:
             print("ERROR: WAYPOINT NOT LOCATED")
 
-
-def main(world):
-    vehicle = world.main_veh # TODO - implement main vehicle -T
-    sensors = world.sensors # TODO - implement sensors -T
-
+def main(world, carla_map, vehicle, sensors):
     destination = carla.Location(x = 100, y = 100, z = 0)
-    autonomous_driving(world, vehicle, sensors, destination)
+    autonomous_driving(world, carla_map, vehicle, sensors, destination)
     
 
-
+if __name__ == "__main__":
+    carla_world, vehichle, sensors, map = world.main()
+    main(carla_world, map, vehichle, sensors)

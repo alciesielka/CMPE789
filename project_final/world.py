@@ -17,8 +17,9 @@ def build_world(client):
 
     # Toggle Buildings On
     world.load_map_layer(carla.MapLayer.Buildings)
+    map = world.get_map()
 
-    return world
+    return world, map
 
 def setup_vehicle(world, blueprint_name = 'vehicle.tesla.model3', spawn_point = None):
   
@@ -182,7 +183,7 @@ def set_spectator_view_veh(world, vehicle):
 def main():
     client = carla.Client('localhost', 2000)
     client.set_timeout(30)
-    world = build_world(client)
+    world, map = build_world(client)
 
     #clear_world(world) # doesnt work well
     blueprint_library = world.get_blueprint_library()
@@ -210,6 +211,7 @@ def main():
     sensors = setup_sensors(world, main_veh)
 
     print("world created!")
+    return world, main_veh, sensors, map
 
 if __name__ == '__main__':
     main()
