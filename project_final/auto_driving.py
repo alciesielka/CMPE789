@@ -15,6 +15,8 @@ def camera_callback(data):
 
 
 def autonomous_driving(world, carla_map, vehicle, sensors, destination):
+    debug_prints = False
+
     current_waypoint_index = 0 
     objects = []
     # Get Sensor Data
@@ -35,10 +37,10 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
         next_waypoint = start_waypoint.next(2.0)[0]  # Get the first waypoint 2 meters ahead
         next_waypoint_location = next_waypoint.transform.location
 
-
-        print(f"Starting Route from : {current_location}")
-        print(f"-> -> -> to : {final_waypoint}")
-        print(f"Next waypoint (2m ahead): {next_waypoint}")
+        if debug_prints == True:
+            print(f"Starting Route from : {current_location}")
+            print(f"-> -> -> to : {final_waypoint}")
+            print(f"Next waypoint (2m ahead): {next_waypoint}")
 
         vehicle_heading = math.radians(vehicle.get_transform().rotation.yaw)
 
@@ -63,7 +65,7 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
             else:
                 print("Moved 2m")
         else:
-            print("ERROR: WAYPOINT NOT LOCATED")
+            print("ERROR: Did not reach next waypoint")
 
 def main(world, carla_map, vehicle, sensors):
     destination = carla.Location(x = 100, y = 100, z = 0)
