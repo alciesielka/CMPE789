@@ -1,9 +1,9 @@
 from calculate_steering import calculate_steering, calculate_steering_to_waypoint, ultra_fast_lane_detection
 from yolo import detect_objects
 import carla
+import math
 
-
-def plan_action(lane_boundaries, objects, traffic_light_state, current_location, next_waypoint_location):
+def plan_action(lane_boundaries, objects, traffic_light_state, current_location, next_waypoint_location, vehicle_heading):
     action = {'steer':0.0, 'throttle':0.5, 'brake':0.0}
 
     # follow lanes
@@ -24,8 +24,8 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
         action['throttle'] *= 0.5
 
     # steer towards next waypoint
-    waypoint_direction = next_waypoint_location - current_location
-    action['steer'] = calculate_steering_to_waypoint(waypoint_direction)
+    # waypoint_direction = next_waypoint_location - current_location
+    action['steer'] = calculate_steering_to_waypoint(next_waypoint_location, current_location, vehicle_heading)
 
     return action
 

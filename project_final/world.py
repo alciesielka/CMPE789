@@ -196,7 +196,7 @@ def main():
     
     # traffic lights
     # traffic = spawn_traffic_light(world)
-    traffic_ligts = setup_traffic_lights(world, duration=15)
+    traffic_ligts = setup_traffic_lights(world, duration=5)
 
     # pedestrians ( "having issues")
     # setup_peds_rand(world, num_pedestrians=2)

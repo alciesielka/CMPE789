@@ -2,6 +2,7 @@ from calculate_steering import calculate_steering, calculate_steering_to_waypoin
 from yolo import detect_objects
 import carla
 import world
+import math
 from actions import plan_action, compute_control
 
 def camera_callback(data):   
@@ -39,11 +40,14 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
         print(f"-> -> -> to : {final_waypoint}")
         print(f"Next waypoint (2m ahead): {next_waypoint}")
 
+        vehicle_heading = math.radians(vehicle.get_transform().rotation.yaw)
+
+
         lane_boundaries = False
         traffic_light_state = False
 
         # Plan Action (consider depth/distancce for objects on road)
-        action = plan_action(lane_boundaries = lane_boundaries, objects = objects, traffic_light_state= traffic_light_state, current_location= current_location, next_waypoint_location=next_waypoint_location)
+        action = plan_action(lane_boundaries = lane_boundaries, objects = objects, traffic_light_state= traffic_light_state, current_location= current_location, next_waypoint_location=next_waypoint_location, vehicle_heading =  vehicle_heading)
         control_signal = compute_control(action)
 
         # Execute Control
