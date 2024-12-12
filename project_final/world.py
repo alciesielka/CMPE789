@@ -1,6 +1,7 @@
 import carla
 import random
-
+import cv2
+import numpy as np
 
 def build_world(client):
     # load minimum world
@@ -57,8 +58,20 @@ def setup_stop_sign(world):
     stop_sign = world.spawn_actor(stop_sign_bp, spawn_point)
     return stop_sign
 
+def camera_callback(data):   
+    # every time we get a new image from the camera, run it through yolo
+    image_array = np.frombuffer(data.raw_data, dtype=np.uint8)
+    image_array = image_array.reshape((data.height, data.width, 4))  # BGRA format
+    
+    # Convert to BGR for OpenCV (optional: remove alpha channel)
+    image_bgr = image_array[:, :, :3]
+    img = cv2.COLOR_BGR2RGB(image_bgr)
+    print("recieved new frame")
+    # return img
+
 def setup_sensors(world, vehicle):
-   sensors = {}
+   global sensor_data
+   sensor_data = {}
    blueprint_library = world.get_blueprint_library()
 
    # lane detection camera
@@ -67,15 +80,17 @@ def setup_sensors(world, vehicle):
    camera_bp.set_attribute("image_size_y", "600")
    camera_transform = carla.Transform(carla.Location(x=1.6, z=2.4))
    camera = world.spawn_actor(camera_bp, camera_transform, attach_to=vehicle)
-   sensors['lane_camera'] = camera #sensors['camera'] = camera
+   sensor_data['lane_camera'] = camera #sensors['camera'] = camera
 
-   # object detection (can use LIDAR)
-   lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
-   lidar_bp.set_attribute('range', '50')
-   lidar_transform = carla.Transform(carla.Location(x=1.6, z=2.4))
-   lidar = world.spawn_actor(lidar_bp, lidar_transform, attach_to=vehicle)
-   sensors['lidar'] = lidar
-   return sensors
+   camera.listen(camera_callback)
+
+#    # object detection (can use LIDAR)
+#    lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
+#    lidar_bp.set_attribute('range', '50')
+#    lidar_transform = carla.Transform(carla.Location(x=1.6, z=2.4))
+#    lidar = world.spawn_actor(lidar_bp, lidar_transform, attach_to=vehicle)
+#    sensor_data['lidar'] = lidar
+   return sensor_data
   
 #    collision_bp = self.blueprint_library.find('sensor.other.collision')
 #    self.collision_sensor = self.world.spawn_actor(
@@ -173,9 +188,13 @@ def set_spectator_view_veh(world, vehicle):
     spectator = world.get_spectator()  
     transform = vehicle.get_transform()  
     
-    spectator_location = transform.location + carla.Location(x=-10, z=5)  # Behind and above the vehicle
+    # Compute a position offset behind and above the vehicle based on its forward vector
+    forward_vector = transform.get_forward_vector()
+    spectator_location = transform.location - forward_vector * 10  # Move 10 units behind the vehicle
+    spectator_location.z += 5  # Raise the spectator 5 units above the vehicle
+
     spectator_transform = carla.Transform(spectator_location, transform.rotation)
-    
+
     spectator.set_transform(spectator_transform)
     print("Spectator camera set to follow the vehicle.")
 

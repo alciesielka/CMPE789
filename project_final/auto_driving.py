@@ -2,19 +2,16 @@ from calculate_steering import calculate_steering, calculate_steering_to_waypoin
 from yolo import detect_objects
 import carla
 import world
+from world import set_spectator_view_veh
 import math
 from actions import plan_action, compute_control
-
-def camera_callback(data):   
-    # every time we get a new image from the camera, run it through yolo
-    yolo_detections = detect_objects(data)
-    print("------------new frame------------")
-    print(yolo_detections)
-    
-    return yolo_detections
+import numpy as np
+import cv2
 
 
 def autonomous_driving(world, carla_map, vehicle, sensors, destination):
+    global sensor_data
+    sensor_data = {}
     debug_prints = False
 
     current_waypoint_index = 0 
@@ -22,12 +19,16 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
     # Get Sensor Data
     camera_sensor = sensors['lane_camera'] # may need to pull out of loop - T
 
-    # Procecss Sensor Data        
-    objects = camera_sensor.listen(lambda data: camera_callback(data)) # may need to pull out of loop - T
-
+    
     while True:
+        set_spectator_view_veh(world, vehicle)
+        print(f"sensor data {sensor_data}")
 
-        print(objects)
+        if 'lane_camera' in sensor_data and sensor_data['lane_camera'] is not None:
+            print("is not None!")
+            lane_image = sensor_data['lane_camera']
+            objects = detect_objects(lane_image)
+
         # Get the Current and Next Waypoint
         current_location = vehicle.get_location()
         start_waypoint = carla_map.get_waypoint(current_location)
@@ -64,8 +65,6 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
                 break
             else:
                 print("Moved 2m")
-        else:
-            print("ERROR: Did not reach next waypoint")
 
 def main(world, carla_map, vehicle, sensors):
     destination = carla.Location(x = 100, y = 100, z = 0)
@@ -75,3 +74,6 @@ def main(world, carla_map, vehicle, sensors):
 if __name__ == "__main__":
     carla_world, vehichle, sensors, map = world.main()
     main(carla_world, map, vehichle, sensors)
+
+
+#TODO: implement lane detection; fix sensor callback; fix traffic light; seems like waypoints are not being reached? updating too fast?
