@@ -98,55 +98,88 @@ def setup_sensors(world, vehicle):
 #        carla.Transform(),
 #        attach_to=self.vehicle)
 
-def setup_peds_rand(world, num_pedestrians=5, min_distance=5.0):
+
+def setup_pedestrian(world, sp):
     blueprint_library = world.get_blueprint_library()
     walker_bp_list = blueprint_library.filter('walker.pedestrian.*')
     controller_bp = blueprint_library.find('controller.ai.walker')
 
-    pedestrian_actors = []
-
-    for _ in range(num_pedestrians):
-
-        spawn_point = world.get_random_location_from_navigation()
-
-        # Spawn walker
-        walker_bp = random.choice(walker_bp_list)
+    # Spawn walker
+    walker_bp = random.choice(walker_bp_list)
         
-        walker = world.spawn_actor(walker_bp, carla.Transform(spawn_point))
-        print("Spawned walker")
+    walker = world.spawn_actor(walker_bp, sp)
+    print("Spawned walker")
 
-        # Spawn controller
-        controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
-        print("Spawned controller")
+    # Spawn controller
+    controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
+    print("Spawned controller")
 
-        # Start the controller and make the walker move
-        try:
-            controller.start()
-            target_location = world.get_random_location_from_navigation()
-            controller.go_to_location(target_location)
-            controller.set_max_speed(random.uniform(1.0, 2.5))
-            pedestrian_actors.append((walker, controller))
-            print(f"Controller started for walker at {walker.get_location()}")
-        except RuntimeError as e:
-            print(f"Error during controller start: {e}")
-            walker.destroy()
-            controller.destroy()
+    # Start the controller and make the walker move
+    #TODO: It might walk
+    try:
+        controller.start()
+        target_location = world.get_random_location_from_navigatgition()
+        controller.go_to_location(target_location) # TODO change target location? is currently random
+        controller.set_max_speed(random.uniform(1.0, 2.5))
+        print(f"Controller started for walker at {walker.get_location()}")
+    except RuntimeError as e:
+        print(f"Error during controller start: {e}")
+        walker.destroy()
+        controller.destroy()
 
-    # spawn_point = world.get_random_location_from_navigation()
-    # # spawn walker
-    # walker = world.spawn_actor(walker_bp, spawn_point)
-    # # spawn controller
-    # controller = world.spawn_actor(controller_bp, carla.Transform(), walker.id)
-    # # start walking
-    # controller.start()
-    # # set destination
-    # controller.go_to_location(destination_point)
-    # # set walking speed (in m/s)
-    # controller.set_max_speed(speed)
-    # # stop walking
-    # controller.stop()
 
-    return pedestrian_actors
+# def setup_peds_rand(world, num_pedestrians=1, min_distance=5.0):
+#     blueprint_library = world.get_blueprint_library()
+#     walker_bp_list = blueprint_library.filter('walker.pedestrian.*')
+#     controller_bp = blueprint_library.find('controller.ai.walker')
+
+#     sp = carla.Transform(carla.Location(x=25.530020, y=110.549988, z=0.240557))
+
+#     pedestrian_actors = []
+
+#     for _ in range(num_pedestrians):
+
+#         spawn_point = world.get_random_location_from_navigation()
+
+#         # Spawn walker
+#         walker_bp = random.choice(walker_bp_list)
+        
+#         walker = world.spawn_actor(walker_bp, sp)
+#         print("Spawned walker")
+
+#         # Spawn controller
+#         controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
+#         print("Spawned controller")
+
+#         # Start the controller and make the walker move
+#         #TODO: It might walk
+#         try:
+#             controller.start()
+#             target_location = world.get_random_location_from_navigation()
+#             controller.go_to_location(target_location)
+#             controller.set_max_speed(random.uniform(1.0, 2.5))
+#             pedestrian_actors.append((walker, controller))
+#             print(f"Controller started for walker at {walker.get_location()}")
+#         except RuntimeError as e:
+#             print(f"Error during controller start: {e}")
+#             walker.destroy()
+#             controller.destroy()
+
+#     # spawn_point = world.get_random_location_from_navigation()
+#     # # spawn walker
+#     # walker = world.spawn_actor(walker_bp, spawn_point)
+#     # # spawn controller
+#     # controller = world.spawn_actor(controller_bp, carla.Transform(), walker.id)
+#     # # start walking
+#     # controller.start()
+#     # # set destination
+#     # controller.go_to_location(destination_point)
+#     # # set walking speed (in m/s)
+#     # controller.set_max_speed(speed)
+#     # # stop walking
+#     # controller.stop()
+
+#     return pedestrian_actors
 
 
 
@@ -206,19 +239,23 @@ def main():
 
     #clear_world(world) # doesnt work well
     blueprint_library = world.get_blueprint_library()
-   # for blueprint in blueprint_library:
-    #    print(blueprint.id)
+  
 
-    main_veh = setup_vehicle(world, 'vehicle.tesla.model3')
-    other_veh = [setup_vehicle(world, 'vehicle.audi.tt'),
-        setup_vehicle(world, 'vehicle.bmw.grandtourer')]
+    # car location
+    sp = carla.Transform(carla.Location(x=25.530020, y=105.549988, z=0.240557))
+
+    main_veh = setup_vehicle(world, 'vehicle.tesla.model3', sp)
+    #TODO: will need there own spawn points
+  #  other_veh = [setup_vehicle(world, 'vehicle.audi.tt'),
+  #      setup_vehicle(world, 'vehicle.bmw.grandtourer')]
     
     # traffic lights
-    # traffic = spawn_traffic_light(world)
     traffic_ligts = setup_traffic_lights(world, duration=5)
 
     # pedestrians ( "having issues")
-    # setup_peds_rand(world, num_pedestrians=2)
+    sp = carla.Transform(carla.Location(x=25.530020, y=110.549988, z=0.240557))
+    setup_pedestrian(world, sp)
+    #setup_peds_rand(world, num_pedestrians=1)
 
     # stop sign
     sign = setup_stop_sign(world)

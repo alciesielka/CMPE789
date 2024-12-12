@@ -12,7 +12,7 @@ import cv2
 def autonomous_driving(world, carla_map, vehicle, sensors, destination):
     global sensor_data
     sensor_data = {}
-    debug_prints = False
+    debug_prints = True
 
     current_waypoint_index = 0 
     objects = []
@@ -43,6 +43,7 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
             print(f"-> -> -> to : {final_waypoint}")
             print(f"Next waypoint (2m ahead): {next_waypoint}")
 
+        current_location = start_waypoint
         vehicle_heading = math.radians(vehicle.get_transform().rotation.yaw)
 
 
@@ -57,14 +58,31 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
         vehicle.apply_control(control_signal)
 
         # Check if Waypoint is Reahed after movement
-        if current_location == next_waypoint_location:
+        if (current_location.transform.location.y <= next_waypoint_location.transform.location.y+1) or (current_location.transform.location.y >= next_waypoint_location.transform.location.y-1):
             # Checkc if Final Waypoint is Reached
-            if current_location == final_waypoint:
-                print("Arrived")
-                vehicle.destroy()
-                break
+            if (current_location.transform.location.x <= final_waypoint.transform.location.x+1) or (current_location.transform.location.x >= final_waypoint.transform.location.x-1):
+                if (current_location.transform.location.y <= final_waypoint.transform.location.y+1) or (current_location.transform.location.y >= final_waypoint.transform.location.y-1):
+                    print("Arrived")
+                    vehicle.destroy()
+                    break
+                else:
+                    print("Moved 2m")  
             else:
                 print("Moved 2m")
+    
+        
+        if (current_location.transform.location.x <= next_waypoint_location.transform.location.x+1) or (current_location.transform.location.x >= next_waypoint_location.transform.location.x-1):
+            # Checkc if Final Waypoint is Reached
+            if (current_location.transform.location.x <= final_waypoint.transform.location.x+1) or (current_location.transform.location.x >= final_waypoint.transform.location.x-1):
+                if (current_location.transform.location.y <= final_waypoint.transform.location.y+1) or (current_location.transform.location.y >= final_waypoint.transform.location.y-1):
+                    print("Arrived")
+                    vehicle.destroy()
+                    break
+                else:
+                    print("Moved 2m")  
+            else:
+                print("Moved 2m")
+    
 
 def main(world, carla_map, vehicle, sensors):
     destination = carla.Location(x = 100, y = 100, z = 0)

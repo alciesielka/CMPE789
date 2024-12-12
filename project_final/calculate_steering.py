@@ -8,8 +8,8 @@ def calculate_steering(lane_boundaries):
 
 def calculate_steering_to_waypoint(waypoint_detection, current_location, vehicle_heading):
     direction_vector = carla.Vector3D(
-        waypoint_detection.x - current_location.x,
-        waypoint_detection.y - current_location.y
+        waypoint_detection.transform.location.x - current_location.transform.location.x,
+        waypoint_detection.transform.location.y - current_location.transform.location.y
     )
 
     waypoint_angle = math.atan2(direction_vector.y, direction_vector.x)
