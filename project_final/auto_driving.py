@@ -10,8 +10,7 @@ import cv2
 
 def autonomous_driving(world, carla_map, vehicle, sensors, destination):
     global sensor_data
-    sensor_data = {}
-    debug_prints = True
+    debug_prints = False
 
     current_waypoint_index = 0 
     objects = []

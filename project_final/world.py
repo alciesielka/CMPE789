@@ -3,6 +3,8 @@ import random
 import cv2
 import numpy as np
 
+sensor_data = {}
+
 def build_world(client):
     # load minimum world
     world = client.load_world("Town02", carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
@@ -71,7 +73,6 @@ def camera_callback(data):
 
 def setup_sensors(world, vehicle):
    global sensor_data
-   sensor_data = {}
    blueprint_library = world.get_blueprint_library()
 
    # lane detection camera
@@ -80,9 +81,8 @@ def setup_sensors(world, vehicle):
    camera_bp.set_attribute("image_size_y", "600")
    camera_transform = carla.Transform(carla.Location(x=1.6, z=2.4))
    camera = world.spawn_actor(camera_bp, camera_transform, attach_to=vehicle)
-   sensor_data['lane_camera'] = camera #sensors['camera'] = camera
 
-   camera.listen(camera_callback)
+   sensor_data['lane_camera'] = camera.listen(camera_callback)
 
 #    # object detection (can use LIDAR)
 #    lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
@@ -147,7 +147,7 @@ def setup_pedestrian(world, sp, tp):
 #         walker = world.spawn_actor(walker_bp, sp)
 #         print("Spawned walker")
 
-#         # Spawn controller
+#         # Spawn cameracontroller
 #         controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
 #         print("Spawned controller")
 

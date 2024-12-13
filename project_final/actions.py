@@ -4,7 +4,7 @@ import carla
 import math
 
 def plan_action(lane_boundaries, objects, traffic_light_state, current_location, next_waypoint_location, vehicle_heading):
-    debug_print = True
+    debug_print = False
     action = {'steer':0.0, 'throttle':0.5, 'brake':0.0}
 
     # follow lanes
@@ -37,7 +37,7 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
 
 # compute control signals (steer, throttle, break) for vehicle
 def compute_control(action):
-    debug_print = True
+    debug_print = False
 
     control = carla.VehicleControl()
     control.steer = action['steer']
