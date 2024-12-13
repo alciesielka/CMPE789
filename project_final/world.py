@@ -65,9 +65,9 @@ def camera_callback(data):
     
     # Convert to BGR for OpenCV (optional: remove alpha channel)
     image_bgr = image_array[:, :, :3]
-    img = cv2.COLOR_BGR2RGB(image_bgr)
+    img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
     print("recieved new frame")
-    # return img
+    return img
 
 def setup_sensors(world, vehicle):
    global sensor_data
@@ -99,7 +99,7 @@ def setup_sensors(world, vehicle):
 #        attach_to=self.vehicle)
 
 
-def setup_pedestrian(world, sp):
+def setup_pedestrian(world, sp, tp):
     blueprint_library = world.get_blueprint_library()
     walker_bp_list = blueprint_library.filter('walker.pedestrian.*')
     controller_bp = blueprint_library.find('controller.ai.walker')
@@ -118,8 +118,8 @@ def setup_pedestrian(world, sp):
     #TODO: It might walk
     try:
         controller.start()
-        target_location = world.get_random_location_from_navigatgition()
-        controller.go_to_location(target_location) # TODO change target location? is currently random
+        # target_location = world.get_random_location_from_navigatgition()
+        controller.go_to_location(tp.location)
         controller.set_max_speed(random.uniform(1.0, 2.5))
         print(f"Controller started for walker at {walker.get_location()}")
     except RuntimeError as e:
@@ -242,7 +242,7 @@ def main():
   
 
     # car location
-    sp = carla.Transform(carla.Location(x=25.530020, y=105.549988, z=0.240557))
+    sp = carla.Transform(carla.Location(x=20.530020, y=105.549988, z=0.240557))
 
     main_veh = setup_vehicle(world, 'vehicle.tesla.model3', sp)
     #TODO: will need there own spawn points
@@ -254,7 +254,8 @@ def main():
 
     # pedestrians ( "having issues")
     sp = carla.Transform(carla.Location(x=25.530020, y=110.549988, z=0.240557))
-    setup_pedestrian(world, sp)
+    tp = carla.Transform(carla.Location(x=40, y=75.549988, z=0.240557))
+    setup_pedestrian(world, sp, tp)
     #setup_peds_rand(world, num_pedestrians=1)
 
     # stop sign
