@@ -2,8 +2,10 @@ import carla
 import random
 import cv2
 import numpy as np
+import threading
 
-sensor_data = {}
+sensor_data = {'lane_camera':None}
+sensor_lock = threading.Lock()
 
 def build_world(client):
     # load minimum world
@@ -60,6 +62,13 @@ def setup_stop_sign(world):
     stop_sign = world.spawn_actor(stop_sign_bp, spawn_point)
     return stop_sign
 
+def populate_sensors(img):
+    global sensor_data
+    global sensor_lock
+    with sensor_lock:
+        sensor_data['lane_camera'] = img
+
+
 def camera_callback(data):   
     # every time we get a new image from the camera, run it through yolo
     image_array = np.frombuffer(data.raw_data, dtype=np.uint8)
@@ -68,7 +77,8 @@ def camera_callback(data):
     # Convert to BGR for OpenCV (optional: remove alpha channel)
     image_bgr = image_array[:, :, :3]
     img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-    print("recieved new frame")
+    #print("recieved new frame")
+    populate_sensors(img)
     return img
 
 def setup_sensors(world, vehicle):
@@ -90,7 +100,7 @@ def setup_sensors(world, vehicle):
 #    lidar_transform = carla.Transform(carla.Location(x=1.6, z=2.4))
 #    lidar = world.spawn_actor(lidar_bp, lidar_transform, attach_to=vehicle)
 #    sensor_data['lidar'] = lidar
-   return sensor_data
+   return sensor_data, camera
   
 #    collision_bp = self.blueprint_library.find('sensor.other.collision')
 #    self.collision_sensor = self.world.spawn_actor(
@@ -237,7 +247,6 @@ def main():
     client.set_timeout(30)
     world, map = build_world(client)
 
-    #clear_world(world) # doesnt work well
     blueprint_library = world.get_blueprint_library()
   
 
@@ -256,19 +265,15 @@ def main():
     sp = carla.Transform(carla.Location(x=25.530020, y=110.549988, z=0.240557))
     tp = carla.Transform(carla.Location(x=40, y=75.549988, z=0.240557))
     setup_pedestrian(world, sp, tp)
-    #setup_peds_rand(world, num_pedestrians=1)
 
     # stop sign
     sign = setup_stop_sign(world)
-    # setup_spectator_view(world, main_veh)
-    camera_view = set_spectator_view_veh(world, main_veh)
-
 
     # sensors
-    sensors = setup_sensors(world, main_veh)
+    sensors, camera = setup_sensors(world, main_veh)
 
     print("world created!")
-    return world, main_veh, sensors, map
+    return world, main_veh, sensors, map, camera
 
 if __name__ == '__main__':
     main()

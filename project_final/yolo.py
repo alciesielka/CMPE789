@@ -1,19 +1,52 @@
 import ultralytics
 from ultralytics import YOLO
+import torch
+
+import cv2
+import torch
+import numpy as np
+from ultra_fast_lane_detection.model.model import parsingNet
+from ultra_fast_lane_detection.utils.common import merge_config
+import torchvision.transforms as transforms
+
+def load_model():
+    backbone='18'
+    model = parsingNet(backbone=backbone, cls_dim=(100+1, 56, 4), use_aux=False).cuda()
+    state_dict = torch.load('culane_18.pth', map_location='cuda')
+    model.load_state_dict(state_dict, strict=False)
+    model.eval()
+    return model
+
+def preprocess_image(img, img_size=(288, 800)):
+    img = cv2.resize(img, (img_size[1], img_size[0]))
+    img = img.astype(np.float32) / 255.0
+    transform = transforms.Compose([transforms.ToTensor(),
+                                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                         std=[0.229, 0.224, 0.225])])
+    img = transform(img).unsqueeze(0).cuda()
+    return img
+
+def run_inference(model, img):
+    with torch.no_grad():
+        outputs = model(img)
+        lane_points = outputs['lane_points']  # Modify based on the model's output structure
+        print(lane_points)
 
 
-def detect_objects(image):
-    print("NEW IMAGE")
-    # Load the YOLOv8 Tiny model
-    model = YOLO("yolov8n.pt")  # 'n' stands for Nano, the smallest YOLOv8 model
+def init_yolo():
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = YOLO("yolov8n.pt").to(device)  # 'n' stands for Nano, the smallest YOLOv8 model
+    return model, device
 
+def detect_objects(image, model, device):
+    
     # Perform inference on an image
-    results = model(image)
+    results = model(image, device = device)
 
-    # Show the results
-    results.show()
-    print(results)
-    return results
+    # for result in results:
+    #         if result.boxes is not None:
+    #             print(f"results {result.boxes.xyxy} {result.boxes.conf} {result.boxes.cls}")
+    # return results
 
 def lane_detection(image):
     pass

@@ -1,28 +1,55 @@
 from calculate_steering import calculate_steering, calculate_steering_to_waypoint, ultra_fast_lane_detection
-from yolo import detect_objects
+from yolo import detect_objects, init_yolo, load_model, preprocess_image, run_inference
 import carla
 import world
 from world import set_spectator_view_veh
 import math
+import torch
 from actions import plan_action, compute_control
 import numpy as np
 import cv2
+from world import sensor_data, camera_callback
 
-def autonomous_driving(world, carla_map, vehicle, sensors, destination):
+def preprocess_lane_image(image):
+    resized = cv2.resize(image, (800, 288))
+    normalized = resized / 255.0  # Normalize to [0,1]
+    tensor = torch.from_numpy(normalized).permute(2, 0, 1).unsqueeze(0).float()
+    return tensor
+
+def detect_lanes(image, model):
+    preprocessed = preprocess_lane_image(image)
+    with torch.no_grad():
+        lane_predictions = model(preprocessed)
+    return lane_predictions
+
+
+def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
     global sensor_data
     debug_prints = False
-
+    model, device = init_yolo()
+    lane_model = load_model()
     current_waypoint_index = 0 
     objects = []
 
     while True:
+       # camera.listen(camera_callback)
         set_spectator_view_veh(world, vehicle)
-        print(f"sensor data {sensor_data}")
 
         if 'lane_camera' in sensor_data and sensor_data['lane_camera'] is not None:
-            print("is not None!")
             lane_image = sensor_data['lane_camera']
-            objects = detect_objects(lane_image)
+            
+            objects = detect_objects(lane_image, model, device)
+            lane_img_pp = preprocess_image(lane_image)
+            lane_boundaries = run_inference(model, lane_img_pp)
+            
+            print(f'lane_boundaries: {lane_boundaries}')           
+           
+            # Debug lane visualization CAN REMOVE
+           # debug_lane_image = ultra_fast_lane_detection.visualize_lanes(lane_image, lane_boundaries)
+           # cv2.imshow('Lane Detection', debug_lane_image)
+           # cv2.waitKey(1)
+
+
 
         # Get the Current and Next Waypoint
         current_location = vehicle.get_location()
@@ -39,7 +66,7 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
 
         vehicle_heading = math.radians(vehicle.get_transform().rotation.yaw)
 
-        lane_boundaries = False
+        #lane_boundaries = False
         traffic_light_state = False
 
         # Plan Action
@@ -65,12 +92,12 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
             else:
                 print("Moved 2m")
 
-def main(world, carla_map, vehicle, sensors):
+def main(world, carla_map, vehicle, sensors, camera):
     destination = carla.Location(x=100, y=100, z=0)
-    autonomous_driving(world, carla_map, vehicle, sensors, destination)
+    autonomous_driving(world, carla_map, vehicle, sensors, destination, camera)
 
 if __name__ == "__main__":
-    carla_world, vehicle, sensors, carla_map = world.main()
-    main(carla_world, carla_map, vehicle, sensors)
+    carla_world, vehicle, sensors, carla_map, camera = world.main()
+    main(carla_world, carla_map, vehicle, sensors, camera)
 
 # TODO: implement lane detection; fix sensor callback; fix traffic light; seems like waypoints are not being reached? updating too fast?

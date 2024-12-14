@@ -13,7 +13,7 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
     
     # avoid obstacles
     if objects:
-        if any([obj.distance < 10 for obj in objects]): # we can adjust threshold
+        if any([obj.boxes.conf > .85 for obj in objects]): # we can adjust threshold
             action['throttle'] = 0.0
             action['brake'] = 1.0
 
