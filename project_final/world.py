@@ -69,6 +69,7 @@ def populate_sensors(img):
         sensor_data['lane_camera'] = img
 
 
+
 def camera_callback(data):   
     # every time we get a new image from the camera, run it through yolo
     image_array = np.frombuffer(data.raw_data, dtype=np.uint8)
@@ -77,7 +78,7 @@ def camera_callback(data):
     # Convert to BGR for OpenCV (optional: remove alpha channel)
     image_bgr = image_array[:, :, :3]
     img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-    #print("recieved new frame")
+    print("recieved new frame")
     populate_sensors(img)
     return img
 

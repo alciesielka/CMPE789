@@ -11,6 +11,16 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
     if lane_boundaries:
         action['steer'] = calculate_steering(lane_boundaries)
     
+        # Calculate steering angle
+        steering_angle = calculate_steering(
+            lane_boundaries=lane_boundaries,
+            current_location=current_location,
+            vehicle_heading=vehicle_heading
+        )
+
+        print(f"Steering Angle: {math.degrees(steering_angle)} degrees")
+
+    
     # avoid obstacles
     if objects:
         if any([obj.boxes.conf > .85 for obj in objects]): # we can adjust threshold

@@ -40,16 +40,8 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
             
             objects = detect_objects(lane_image, model, device)
             lane_img_pp = preprocess_image(lane_image)
-            lane_boundaries = run_inference(model, lane_img_pp)
-            
-            print(f'lane_boundaries: {lane_boundaries}')           
+            lane_boundaries = run_inference(model, lane_img_pp)        
            
-            # Debug lane visualization CAN REMOVE
-           # debug_lane_image = ultra_fast_lane_detection.visualize_lanes(lane_image, lane_boundaries)
-           # cv2.imshow('Lane Detection', debug_lane_image)
-           # cv2.waitKey(1)
-
-
 
         # Get the Current and Next Waypoint
         current_location = vehicle.get_location()

@@ -6,13 +6,12 @@ import cv2
 import torch
 import numpy as np
 from ultra_fast_lane_detection.model.model import parsingNet
-from ultra_fast_lane_detection.utils.common import merge_config
 import torchvision.transforms as transforms
 
 def load_model():
     backbone='18'
     model = parsingNet(backbone=backbone, cls_dim=(100+1, 56, 4), use_aux=False).cuda()
-    state_dict = torch.load('culane_18.pth', map_location='cuda')
+    state_dict = torch.load('C:\\Users\\django\\Documents\\Alex\\CMPE789-Github\\CMPE789\\project_final\\culane_18.pth', map_location='cuda')
     model.load_state_dict(state_dict, strict=False)
     model.eval()
     return model
@@ -29,9 +28,10 @@ def preprocess_image(img, img_size=(288, 800)):
 def run_inference(model, img):
     with torch.no_grad():
         outputs = model(img)
-        lane_points = outputs['lane_points']  # Modify based on the model's output structure
+        lane_points = outputs  # Modify based on the model's output structure
         print(lane_points)
-
+    
+    return lane_points
 
 def init_yolo():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
