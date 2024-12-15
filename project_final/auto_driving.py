@@ -1,4 +1,4 @@
-from calculate_steering import calculate_steering, calculate_steering_to_waypoint, ultra_fast_lane_detection
+from calculate_steering import calculate_steering, calculate_steering_to_waypoint
 from yolo import detect_objects, init_yolo, load_model, preprocess_image, run_inference
 import carla
 import world
@@ -48,7 +48,7 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
         start_waypoint = carla_map.get_waypoint(current_location)
         final_waypoint = carla_map.get_waypoint(destination)
 
-        next_waypoint = start_waypoint.next(2.0)[0]  # Get the first waypoint 2 meters ahead
+        next_waypoint = start_waypoint.next(1.0)[0]  # Get the first waypoint 2 meters ahead
         next_waypoint_location = next_waypoint.transform.location
 
         if debug_prints:
@@ -76,8 +76,8 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
         vehicle.apply_control(control_signal)
 
         # Check if Waypoint is Reached after movement
-        if abs(current_location.x - next_waypoint_location.x) <= 1 and abs(current_location.y - next_waypoint_location.y) <= 1:
-            if abs(current_location.x - destination.x) <= 1 and abs(current_location.y - destination.y) <= 1:
+        if abs(current_location.x - next_waypoint_location.x) <= 2 or abs(current_location.y - next_waypoint_location.y) <= 2:
+            if abs(current_location.x - destination.x) <= 2 or abs(current_location.y - destination.y) <= 2:
                 print("Arrived")
                 vehicle.destroy()
                 break
@@ -92,4 +92,5 @@ if __name__ == "__main__":
     carla_world, vehicle, sensors, carla_map, camera = world.main()
     main(carla_world, carla_map, vehicle, sensors, camera)
 
-# TODO: implement lane detection; fix sensor callback; fix traffic light; seems like waypoints are not being reached? updating too fast?
+# TODO: fix traffic light
+# TODO: fix vehicle spawn

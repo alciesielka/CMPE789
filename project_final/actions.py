@@ -1,4 +1,4 @@
-from calculate_steering import calculate_steering, calculate_steering_to_waypoint, ultra_fast_lane_detection
+from calculate_steering import calculate_steering, calculate_steering_to_waypoint
 from yolo import detect_objects
 import carla
 import math
@@ -6,10 +6,12 @@ import math
 def plan_action(lane_boundaries, objects, traffic_light_state, current_location, next_waypoint_location, vehicle_heading):
     debug_print = False
     action = {'steer':0.0, 'throttle':0.5, 'brake':0.0}
+    print("plan action")
 
     # follow lanes
     if lane_boundaries:
-        action['steer'] = calculate_steering(lane_boundaries)
+        print("yes lane boundaires")
+        action['steer'] = calculate_steering(lane_boundaries, current_location, vehicle_heading)
     
         # Calculate steering angle
         steering_angle = calculate_steering(
@@ -23,9 +25,16 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
     
     # avoid obstacles
     if objects:
-        if any([obj.boxes.conf > .85 for obj in objects]): # we can adjust threshold
-            action['throttle'] = 0.0
-            action['brake'] = 1.0
+        if any([obj.boxes.conf > .2 for obj in objects]): # we can adjust threshold
+            print("yes object")
+            if any([obj.boxes.cls == 0 or obj.boxes.cls == 1 for obj in objects]):
+                print("yes ped or car")
+                action['throttle'] = 0.0
+                action['brake'] = 1.0
+            # Check for traffic Light
+            if any([obj.boxes.cls == 0 or obj.boxes.cls == 1 for obj in objects]): 
+                action['throttle'] = 0.0
+                action['brake'] = 1.0
 
     # need to isolate traffic light we are closest to!
     # if traffic_light_state == carla.TrafficLightState.Red:

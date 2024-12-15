@@ -78,7 +78,6 @@ def camera_callback(data):
     # Convert to BGR for OpenCV (optional: remove alpha channel)
     image_bgr = image_array[:, :, :3]
     img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-    print("recieved new frame")
     populate_sensors(img)
     return img
 
@@ -252,9 +251,11 @@ def main():
   
 
     # car location
-    sp = carla.Transform(carla.Location(x=20.530020, y=105.549988, z=0.240557))
+    sp = carla.Transform(carla.Location(x=-8.436994, y=77.451813, z=0.240557))
 
+    # main_veh = setup_vehicle(world, 'vehicle.tesla.model3')
     main_veh = setup_vehicle(world, 'vehicle.tesla.model3', sp)
+
     #TODO: will need there own spawn points
   #  other_veh = [setup_vehicle(world, 'vehicle.audi.tt'),
   #      setup_vehicle(world, 'vehicle.bmw.grandtourer')]
@@ -267,8 +268,16 @@ def main():
     tp = carla.Transform(carla.Location(x=40, y=75.549988, z=0.240557))
     setup_pedestrian(world, sp, tp)
 
+    # sp2 = carla.Transform(carla.Location(x=22.530020, y=109.549988, z=0.240557))
+    # tp2 = carla.Transform(carla.Location(x=40, y=75.549988, z=0.240557))
+    # setup_pedestrian(world, sp2, tp2)
+
+    # sp3 = carla.Transform(carla.Location(x=20.530020, y=93.549988, z=0.240557))
+    # tp3 = carla.Transform(carla.Location(x=41, y=74.549988, z=0.240557))
+    # setup_pedestrian(world, sp3, tp3)
+
     # stop sign
-    sign = setup_stop_sign(world)
+    # sign = setup_stop_sign(world)
 
     # sensors
     sensors, camera = setup_sensors(world, main_veh)

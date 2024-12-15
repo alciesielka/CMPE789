@@ -20,4 +20,4 @@ What to get
 1. Navigate to file location
     cd C:\Users\django\Documents\Alex\WindowsNoEditor
 2. Run in terminal: 
-    .\CarlaUE4
+    .\CarlaUE4 -quality-level=Low

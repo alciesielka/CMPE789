@@ -4,6 +4,7 @@ import math
 
 
 def calculate_steering(lane_boundaries, current_location, vehicle_heading):
+    print("calculating lane steering")
     left_lane_points = lane_boundaries[0] if lane_boundaries and len(lane_boundaries) > 0 else None
     right_lane_points = lane_boundaries[1] if lane_boundaries and len(lane_boundaries) > 1 else None
 
@@ -21,7 +22,7 @@ def calculate_steering(lane_boundaries, current_location, vehicle_heading):
     ]
 
     # Choose a target point ahead of the vehicle
-    target_point = lane_center_points[min(10, len(lane_center_points) - 1)]  # 10 points ahead or the last point
+    target_point = lane_center_points[min(5, len(lane_center_points) - 1)]  # 10 points ahead or the last point
 
     direction_vector = carla.Vector3D(
         target_point.x - current_location.x,
@@ -52,6 +53,7 @@ def calculate_steering(lane_boundaries, current_location, vehicle_heading):
 #     return steering_angle
 
 def calculate_steering_to_waypoint(waypoint_detection, current_location, vehicle_heading):
+    print("calculate waypoint steering")
     direction_vector = carla.Vector3D(
         waypoint_detection.x - current_location.x,
         waypoint_detection.y - current_location.y
@@ -64,10 +66,6 @@ def calculate_steering_to_waypoint(waypoint_detection, current_location, vehicle
     steering_angle = (steering_angle + math.pi) % (2 * math.pi) - math.pi
 
     return steering_angle
-
-
-def ultra_fast_lane_detection(lane_bound):
-    lane_bound
 
 
     
