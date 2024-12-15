@@ -26,7 +26,7 @@ def build_world(client):
 
     return world, map
 
-def setup_vehicle(world, blueprint_name = 'vehicle.tesla.model3', spawn_point = None):
+def setup_vehicle(world, blueprint_name = 'vehicle.tesla.model3', spawn_point = None, autopilot= False):
   
    blueprint_library = world.get_blueprint_library()
    vehicle_bp = blueprint_library.find(blueprint_name)
@@ -35,6 +35,10 @@ def setup_vehicle(world, blueprint_name = 'vehicle.tesla.model3', spawn_point = 
    spawn_point = spawn_point if spawn_point else random.choice(spawn_points)
 
    vehicle = world.spawn_actor(vehicle_bp, spawn_point)
+
+   if (autopilot):
+        vehicle.set_autopilot(True)
+
    return vehicle
 
 def setup_traffic_lights(world, duration=10):
@@ -256,8 +260,10 @@ def main():
 
     main_veh = setup_vehicle(world, 'vehicle.tesla.model3', sp)
     #TODO: will need there own spawn points
-  #  other_veh = [setup_vehicle(world, 'vehicle.audi.tt'),
-  #      setup_vehicle(world, 'vehicle.bmw.grandtourer')]
+
+    test_veh = setup_vehicle(world, 'vehicle.audi.tt', autopilot=True)    
+    #other_veh = [setup_vehicle(world, 'vehicle.audi.tt', autopilot=True),
+     #   setup_vehicle(world, 'vehicle.bmw.grandtourer', autopilot=True)]
     
     # traffic lights
     traffic_ligts = setup_traffic_lights(world, duration=5)
@@ -271,10 +277,10 @@ def main():
     sign = setup_stop_sign(world)
 
     # sensors
-    sensors, camera = setup_sensors(world, main_veh)
+    sensors, camera = setup_sensors(world, test_veh)
 
     print("world created!")
-    return world, main_veh, sensors, map, camera
+    return world, main_veh, sensors, map, camera, test_veh
 
 if __name__ == '__main__':
     main()

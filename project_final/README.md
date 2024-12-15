@@ -21,3 +21,6 @@ What to get
     cd C:\Users\django\Documents\Alex\WindowsNoEditor
 2. Run in terminal: 
     .\CarlaUE4
+
+# Running with Low Resolution
+1. .\CarlaUE4 -quality-level=Low
