@@ -23,17 +23,19 @@ def detect_lanes(image, model):
     return lane_predictions
 
 
-def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
+def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera, pedestrians):
     global sensor_data
     debug_prints = False
     model, device = init_yolo()
     lane_model = load_model()
     current_waypoint_index = 0 
     objects = []
-
+    
     while True:
        # camera.listen(camera_callback)
         set_spectator_view_veh(world, vehicle)
+
+        #set_spectator_view_veh(world, walker)
 
         if 'lane_camera' in sensor_data and sensor_data['lane_camera'] is not None:
             lane_image = sensor_data['lane_camera']
@@ -84,12 +86,12 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
             else:
                 print("Moved 2m")
 
-def main(world, carla_map, vehicle, sensors, camera):
+def main(world, carla_map, vehicle, sensors, camera, pedestrians):
     destination = carla.Location(x=100, y=100, z=0)
-    autonomous_driving(world, carla_map, vehicle, sensors, destination, camera)
+    autonomous_driving(world, carla_map, vehicle, sensors, destination, camera, pedestrians)
 
 if __name__ == "__main__":
-    carla_world, vehicle, sensors, carla_map, camera = world.main()
-    main(carla_world, carla_map, vehicle, sensors, camera)
+    carla_world, vehicle, sensors, carla_map, camera, test_veh, pedestrians = world.main()
+    main(carla_world, carla_map, test_veh, sensors, camera, pedestrians)
 
 # TODO: implement lane detection; fix sensor callback; fix traffic light; seems like waypoints are not being reached? updating too fast?

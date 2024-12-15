@@ -1,18 +1,17 @@
 import carla
 
+client = carla.Client('localhost', 2000)  # Adjust the IP and port as necessary
+client.set_timeout(10.0)
 
-def list_all_blueprints(client):
-    # Connect to the Carla world
-    world = client.get_world()
-    blueprint_library = world.get_blueprint_library()
+# List all available maps
+maps = client.get_available_maps()
 
-    # Get all blueprints in the library (using an empty filter to list everything)
-    blueprints = blueprint_library.filter('stop')
+world = client.load_world("Town05_Opt", carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
 
-    # Print the ID of each blueprint
-    for bp in blueprints:
-        print(f"Blueprint ID: {bp.id}")
+nav_point = world.get_random_location_from_navigation() 
+if not nav_point:
+        print("Navigation data unavailable on this map.")
 
-# Example usage (make sure the Carla server is running and the client is connected)
-client = carla.Client('localhost', 2000)  # Change IP/port if needed
-list_all_blueprints(client)
+print("Navigation point:", nav_point)
+
+print(f"Current world map: {world.get_map().name}")
