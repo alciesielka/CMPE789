@@ -30,7 +30,7 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
     lane_model = load_model()
     current_waypoint_index = 0 
     objects = []
-
+    
     while True:
        # camera.listen(camera_callback)
         set_spectator_view_veh(world, vehicle)

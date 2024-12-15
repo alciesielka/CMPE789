@@ -9,7 +9,7 @@ sensor_lock = threading.Lock()
 
 def build_world(client):
     # load minimum world
-    world = client.load_world("Town05_Opt", carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
+    world = client.load_world("Town02", carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
     nav_point = world.get_random_location_from_navigation() 
     if not nav_point:
         print("Navigation data unavailable on this map.")
@@ -26,7 +26,7 @@ def build_world(client):
 
     return world, map
 
-def setup_vehicle(world, blueprint_name = 'vehicle.tesla.model3', spawn_point = None):
+def setup_vehicle(world, blueprint_name = 'vehicle.tesla.model3', spawn_point = None, autopilot=False):
   
    blueprint_library = world.get_blueprint_library()
    vehicle_bp = blueprint_library.find(blueprint_name)
@@ -35,6 +35,9 @@ def setup_vehicle(world, blueprint_name = 'vehicle.tesla.model3', spawn_point = 
    spawn_point = spawn_point if spawn_point else random.choice(spawn_points)
 
    vehicle = world.spawn_actor(vehicle_bp, spawn_point)
+
+   if autopilot:
+        vehicle.set_autopilot(True)
    return vehicle
 
 def setup_traffic_lights(world, duration=10):
@@ -149,7 +152,7 @@ def setup_peds_rand(world, num_pedestrians=5, min_distance=5.0):
 
     for _ in range(num_pedestrians):
 
-       # spawn_point = world.get_random_location_from_navigation()
+        #spawn_point = world.get_random_location_from_navigation()
         target_point = random.choice(spawn_points)
         spawn_point = random.choice(spawn_points)
 
@@ -163,21 +166,22 @@ def setup_peds_rand(world, num_pedestrians=5, min_distance=5.0):
         # Spawn cameracontroller
         controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
         print(f'Spawned controller{_}')
+        pedestrian_actors.append(walker)
 
         # Start the controller and make the walker move
         #TODO: It might walk
-        try:
-            controller.start()
-            target_location = world.get_random_location_from_navigation()
-            controller.go_to_location(target_point.location)
-            print(f'target_point location {target_point.location}')
-            controller.set_max_speed(random.uniform(1.0, 2.5))
-            pedestrian_actors.append((walker, controller))
-            print(f"Controller started for walker at {walker.get_location()}")
-        except RuntimeError as e:
-            print(f"Error during controller start: {e}")
-            walker.destroy()
-            controller.destroy()
+        # try:
+        #     controller.start()
+        #     target_location = world.get_random_location_from_navigation()
+        #     controller.go_to_location(target_point.location)
+        #     print(f'target_point location {target_location}')
+        #     controller.set_max_speed(random.uniform(1.0, 2.5))
+        #     pedestrian_actors.append((walker, controller))
+        #     print(f"Controller started for walker at {walker.get_location()}")
+        # except RuntimeError as e:
+        #     print(f"Error during controller start: {e}")
+        #     walker.destroy()
+        #     controller.destroy()
 
     # spawn_point = world.get_random_location_from_navigation()
     # # spawn walker
@@ -261,8 +265,8 @@ def main():
     #main_veh = setup_vehicle(world, 'vehicle.tesla.model3', sp)
 
     #TODO: will need there own spawn points
-  #  other_veh = [setup_vehicle(world, 'vehicle.audi.tt'),
-  #      setup_vehicle(world, 'vehicle.bmw.grandtourer')]
+    other_veh = [setup_vehicle(world, 'vehicle.audi.tt', autopilot=True),
+       setup_vehicle(world, 'vehicle.bmw.grandtourer', autopilot=True)]
     
     # traffic lights
     traffic_ligts = setup_traffic_lights(world, duration=5)
@@ -280,10 +284,11 @@ def main():
     # tp3 = carla.Transform(carla.Location(x=41, y=74.549988, z=0.240557))
     # setup_pedestrian(world, sp3, tp3)
 
-    # stop sign
+    # stop signwwwwwwwww
     # sign = setup_stop_sign(world)(
 
-    setup_peds_rand(world)
+    actors = setup_peds_rand(world)
+    #set_spectator_view_veh(world, other_veh[0])
 
     # sensors
     sensors, camera = setup_sensors(world, main_veh)
