@@ -9,7 +9,7 @@ sensor_lock = threading.Lock()
 
 def build_world(client):
     # load minimum world
-    world = client.load_world("Town02", carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
+    world = client.load_world("Town05_Opt", carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
     nav_point = world.get_random_location_from_navigation() 
     if not nav_point:
         print("Navigation data unavailable on this map.")
@@ -138,58 +138,62 @@ def setup_pedestrian(world, sp, tp):
         controller.destroy()
 
 
-# def setup_peds_rand(world, num_pedestrians=1, min_distance=5.0):
-#     blueprint_library = world.get_blueprint_library()
-#     walker_bp_list = blueprint_library.filter('walker.pedestrian.*')
-#     controller_bp = blueprint_library.find('controller.ai.walker')
+def setup_peds_rand(world, num_pedestrians=5, min_distance=5.0):
+    blueprint_library = world.get_blueprint_library()
+    walker_bp_list = blueprint_library.filter('walker.pedestrian.*')
+    controller_bp = blueprint_library.find('controller.ai.walker')
 
-#     sp = carla.Transform(carla.Location(x=25.530020, y=110.549988, z=0.240557))
+    sp = carla.Transform(carla.Location(x=25.530020, y=110.549988, z=0.240557))
+    spawn_points = world.get_map().get_spawn_points()
+    pedestrian_actors = []
 
-#     pedestrian_actors = []
+    for _ in range(num_pedestrians):
 
-#     for _ in range(num_pedestrians):
+       # spawn_point = world.get_random_location_from_navigation()
+        target_point = random.choice(spawn_points)
+        spawn_point = random.choice(spawn_points)
 
-#         spawn_point = world.get_random_location_from_navigation()
-
-#         # Spawn walker
-#         walker_bp = random.choice(walker_bp_list)
+        # Spawn walker
+        walker_bp = random.choice(walker_bp_list)
         
-#         walker = world.spawn_actor(walker_bp, sp)
-#         print("Spawned walker")
+        walker = world.spawn_actor(walker_bp, spawn_point)
+        print(f'Spawned walker {_}')
+        print(f'spawn_point {spawn_point}')
 
-#         # Spawn cameracontroller
-#         controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
-#         print("Spawned controller")
+        # Spawn cameracontroller
+        controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
+        print(f'Spawned controller{_}')
 
-#         # Start the controller and make the walker move
-#         #TODO: It might walk
-#         try:
-#             controller.start()
-#             target_location = world.get_random_location_from_navigation()
-#             controller.go_to_location(target_location)
-#             controller.set_max_speed(random.uniform(1.0, 2.5))
-#             pedestrian_actors.append((walker, controller))
-#             print(f"Controller started for walker at {walker.get_location()}")
-#         except RuntimeError as e:
-#             print(f"Error during controller start: {e}")
-#             walker.destroy()
-#             controller.destroy()
+        # Start the controller and make the walker move
+        #TODO: It might walk
+        try:
+            controller.start()
+            target_location = world.get_random_location_from_navigation()
+            controller.go_to_location(target_point.location)
+            print(f'target_point location {target_point.location}')
+            controller.set_max_speed(random.uniform(1.0, 2.5))
+            pedestrian_actors.append((walker, controller))
+            print(f"Controller started for walker at {walker.get_location()}")
+        except RuntimeError as e:
+            print(f"Error during controller start: {e}")
+            walker.destroy()
+            controller.destroy()
 
-#     # spawn_point = world.get_random_location_from_navigation()
-#     # # spawn walker
-#     # walker = world.spawn_actor(walker_bp, spawn_point)
-#     # # spawn controller
-#     # controller = world.spawn_actor(controller_bp, carla.Transform(), walker.id)
-#     # # start walking
-#     # controller.start()
-#     # # set destination
-#     # controller.go_to_location(destination_point)
-#     # # set walking speed (in m/s)
-#     # controller.set_max_speed(speed)
-#     # # stop walking
-#     # controller.stop()
+    # spawn_point = world.get_random_location_from_navigation()
+    # # spawn walker
+    # walker = world.spawn_actor(walker_bp, spawn_point)
+    # # spawn controller
+    # controller = world.spawn_actor(controller_bp, carla.Transform(), walker.id)
+    # # start walking
+    # controller.start()
+    # # set destination
+    # controller.go_to_location(destination_point)
+    # # set walking speed (in m/s)
+    # controller.set_max_speed(speed)
+    # # stop walking
+    # controller.stop()
 
-#     return pedestrian_actors
+    return pedestrian_actors
 
 
 
@@ -253,8 +257,8 @@ def main():
     # car location
     sp = carla.Transform(carla.Location(x=-8.436994, y=77.451813, z=0.240557))
 
-    # main_veh = setup_vehicle(world, 'vehicle.tesla.model3')
-    main_veh = setup_vehicle(world, 'vehicle.tesla.model3', sp)
+    main_veh = setup_vehicle(world, 'vehicle.tesla.model3')
+    #main_veh = setup_vehicle(world, 'vehicle.tesla.model3', sp)
 
     #TODO: will need there own spawn points
   #  other_veh = [setup_vehicle(world, 'vehicle.audi.tt'),
@@ -266,7 +270,7 @@ def main():
     # pedestrians ( "having issues")
     sp = carla.Transform(carla.Location(x=25.530020, y=110.549988, z=0.240557))
     tp = carla.Transform(carla.Location(x=40, y=75.549988, z=0.240557))
-    setup_pedestrian(world, sp, tp)
+    #setup_pedestrian(world, sp, tp)
 
     # sp2 = carla.Transform(carla.Location(x=22.530020, y=109.549988, z=0.240557))
     # tp2 = carla.Transform(carla.Location(x=40, y=75.549988, z=0.240557))
@@ -277,7 +281,9 @@ def main():
     # setup_pedestrian(world, sp3, tp3)
 
     # stop sign
-    # sign = setup_stop_sign(world)
+    # sign = setup_stop_sign(world)(
+
+    setup_peds_rand(world)
 
     # sensors
     sensors, camera = setup_sensors(world, main_veh)
