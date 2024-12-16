@@ -10,21 +10,31 @@ sensor_lock = threading.Lock()
 def build_world(client):
     # load minimum world
     world = client.load_world("Town02", carla.MapLayer.Buildings)
-    nav_point = world.get_random_location_from_navigation() 
-    if not nav_point:
-        print("Navigation data unavailable on this map.")
 
-    print("Navigation point:", nav_point)
-    
-    
-    # Toggle Buildings Off
-    world.unload_map_layer(carla.MapLayer.ParkedVehicles)
+   # world.unload_map_layer(carla.MapLayer.ParkedVehicles)
+   # world.load_map_layer(carla.MapLayer.Buildings)
 
-    # Toggle Buildings On
-    world.load_map_layer(carla.MapLayer.Buildings)
+
+    # nav_point = world.get_random_location_from_navigation() 
+    # if not nav_point:
+    #     print("Navigation data unavailable on this map.")
+
+    # print("Navigation point:", nav_point)
+
+    
     map = world.get_map()
 
     return world, map
+
+def setup_main_vehicle(world, spawn_point, blueprint_name = 'vehicle.tesla.model3'):
+  
+   blueprint_library = world.get_blueprint_library()
+   vehicle_bp = blueprint_library.find(blueprint_name)
+
+   vehicle = world.spawn_actor(vehicle_bp, spawn_point)
+   print(f'spawn_point {spawn_point}')
+
+   return vehicle
 
 def setup_vehicle(world, blueprint_name = 'vehicle.tesla.model3', spawn_point = None, autopilot=False):
   
@@ -91,26 +101,15 @@ def setup_sensors(world, vehicle):
 
    # lane detection camera
    camera_bp = blueprint_library.find('sensor.camera.rgb')
-   camera_bp.set_attribute("image_size_x", "800")
-   camera_bp.set_attribute("image_size_y", "600")
+   camera_bp.set_attribute("image_size_x", "640") # 800
+   camera_bp.set_attribute("image_size_y", "640") # 600
    camera_transform = carla.Transform(carla.Location(x=1.6, z=2.4))
    camera = world.spawn_actor(camera_bp, camera_transform, attach_to=vehicle)
 
    sensor_data['lane_camera'] = camera.listen(camera_callback)
 
-#    # object detection (can use LIDAR)
-#    lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
-#    lidar_bp.set_attribute('range', '50')
-#    lidar_transform = carla.Transform(carla.Location(x=1.6, z=2.4))
-#    lidar = world.spawn_actor(lidar_bp, lidar_transform, attach_to=vehicle)
-#    sensor_data['lidar'] = lidar
    return sensor_data, camera
-  
-#    collision_bp = self.blueprint_library.find('sensor.other.collision')
-#    self.collision_sensor = self.world.spawn_actor(
-#        collision_bp,
-#        carla.Transform(),
-#        attach_to=self.vehicle)
+
 
 
 def setup_pedestrian(world, sp, tp):
@@ -187,28 +186,6 @@ def setup_peds_rand(world, num_pedestrians=1, min_distance=5.0):
     return pedestrian_actors
 
 
-
-# def setup_spectator_view(world, target_actor=None):
-#     # Get the spectator camera
-#     spectator = world.get_spectator()
-
-#     if target_actor:
-#         target_location = target_actor.get_location()
-
-#         location = carla.Location(x=target_location.x, y=target_location.y, z=target_location.z + 10)  # 10 meters above the target
-#         rotation = carla.Rotation(pitch=-30, yaw=0)  # Slight tilt to view the actor better
-#         spectator.set_transform(carla.Transform(location, rotation))
-#         print(f"Spectator view set above the stop sign at location: {location}")
-#     else:
-#         # default view of the town (above)
-#         location = carla.Location(x=0, y=0, z=100)  # Height of 100 meters above the town
-#         rotation = carla.Rotation(pitch=-90)  # Looking straight down at the town
-
-#         # Apply the transformation
-#         spectator.set_transform(carla.Transform(location, rotation))
-#         print("Spectator view set above the town.")
-
-
 def set_spectator_view_veh(world, vehicle):
     spectator = world.get_spectator()  
     transform = vehicle.get_transform()  
@@ -229,14 +206,11 @@ def main():
     client.set_timeout(30)
     world, map = build_world(client)
 
-    blueprint_library = world.get_blueprint_library()
-  
-
     # car location
-    sp = carla.Transform(carla.Location(x=43.581200, y=-190.137695, z=0.300000))
-    sp = carla.Transform(carla.Location(x=117, y=187, z=0.5))
-    main_veh = setup_vehicle(world, 'vehicle.tesla.model3', spawn_point=sp)
-    
+    #sp = carla.Transform(carla.Location(x=43.581200, y=-190.137695, z=0.300000))
+    sp = carla.Transform(carla.Location(x=117, y=187, z=0.5), carla.Rotation(pitch=0.000000, yaw=180, roll=0.000000))
+   # main_veh = setup_vehicle(world, 'vehicle.tesla.model3', spawn_point=sp)
+    main_veh = setup_main_vehicle(world, sp, 'vehicle.tesla.model3')
 
     #TODO: will need there own spawn points
     other_veh = [setup_vehicle(world, 'vehicle.audi.tt', autopilot=True),

@@ -1,5 +1,5 @@
 from calculate_steering import calculate_steering, calculate_steering_to_waypoint
-from yolo import detect_objects, init_yolo, load_model, preprocess_image, run_inference, preprocess_image_ufld
+from yolo import detect_objects, init_yolo, load_model, run_inference, preprocess_image_ufld
 import carla
 import world
 from world import set_spectator_view_veh
@@ -8,19 +8,20 @@ import torch
 from actions import plan_action, compute_control
 import numpy as np
 import cv2
-from world import sensor_data, camera_callback
+from world import sensor_data
+import random
 
 def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
     global sensor_data
     debug_prints = False
     model, device = init_yolo()
     lane_model = load_model()
-    current_waypoint_index = 0 
+    #current_waypoint_index = 0 
     objects = []
-    
+    set_spectator_view_veh(world, vehicle)
     while True:
        # camera.listen(camera_callback)
-        set_spectator_view_veh(world, vehicle)
+       # set_spectator_view_veh(world, vehicle)
 
         if 'lane_camera' in sensor_data and sensor_data['lane_camera'] is not None:
             lane_image = sensor_data['lane_camera']
@@ -63,8 +64,10 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
         vehicle.apply_control(control_signal)
 
         # Check if Waypoint is Reached after movement
-        if abs(current_location.x - next_waypoint_location.x) <= 2 or abs(current_location.y - next_waypoint_location.y) <= 2:
-            if abs(current_location.x - destination.x) <= 2 or abs(current_location.y - destination.y) <= 2:
+        print(f'current_location {current_location.x}, {current_location.y}')
+        print(f'destination {destination.x}, {destination.y}')
+        if abs(current_location.x - next_waypoint_location.x) <= 10 or abs(current_location.y - next_waypoint_location.y) <= 10:
+            if abs(current_location.x - destination.x) <= 10 and abs(current_location.y - destination.y) <= 10:
                 print("Arrived")
                 print(f'current_location {current_location.x}, {current_location.y}')
                 print(f'destination {destination.x}, {destination.y}')
@@ -72,10 +75,16 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
                 world.destroy()
                 break
             else:
-                print("Moved 2m")
+                print("Moved 3m")
 
 def main(world, carla_map, vehicle, sensors, camera):
-    destination = carla.Location(x=100, y=100, z=0)
+    spawn_points = world.get_map().get_spawn_points()
+    destination = random.choice(spawn_points).location
+    #sp = carla.Transform(carla.Location(x=43.581200, y=-190.137695, z=0.300000))
+
+   
+    destination = carla.Location(x=76, y = 105, z = 0)
+    #destination = carla.Location(x=100, y=100, z=0)
     autonomous_driving(world, carla_map, vehicle, sensors, destination, camera)
 
 if __name__ == "__main__":

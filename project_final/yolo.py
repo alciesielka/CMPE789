@@ -16,7 +16,29 @@ def load_model():
     model.eval()
     return model
 
-def preprocess_image(img, img_size=(800, 600)): # may need to swap to 600 x 800
+
+def preprocess_image_yolo_center_crop(img, img_size=(600, 200)):
+    # Calculate the center crop box
+    center_x, center_y = img.shape[1] // 2, img.shape[0] // 2
+    crop_x1 = max(center_x - img_size[1] // 2, 0)
+    crop_x2 = min(center_x + img_size[1] // 2, img.shape[1])
+    crop_y1 = max(center_y - img_size[0] // 2, 0)
+    crop_y2 = min(center_y + img_size[0] // 2, img.shape[0])
+
+    # Crop and then resize
+    img = img[crop_y1:crop_y2, crop_x1:crop_x2]
+    img = cv2.resize(img, (img_size[1], img_size[0]))
+
+    # Continue with the normalization and transformation
+    img = img.astype(np.float32) / 255.0
+    transform = transforms.Compose([transforms.ToTensor(),
+                                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                         std=[0.229, 0.224, 0.225])])
+    img = transform(img).unsqueeze(0).cuda()
+    return img
+
+
+def preprocess_image_yolo(img, img_size=(600, 100)): # may need to swap to 800 x 600
     img = cv2.resize(img, (img_size[1], img_size[0]))
     img = img.astype(np.float32) / 255.0
     transform = transforms.Compose([transforms.ToTensor(),
@@ -44,7 +66,7 @@ def run_inference(model, img):
 
 def init_yolo():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(device)
+    #print(device)
     model = YOLO('C:\\Users\\django\\Documents\\Alex\\CMPE789-Github\\CMPE789\\train\\weights\\best.pt', verbose=False).to(device)  # 'n' stands for Nano, the smallest YOLOv8 model
     # state_dict = torch.load('C:\\Users\\django\\Documents\\Alex\\CMPE789-Github\\CMPE789\\train\\weights\\best.pt', map_location='cuda')
     # model.load_state_dict(state_dict, strict=False)
@@ -54,7 +76,11 @@ def init_yolo():
 def detect_objects(image, model, device):
     
     # Perform inference on an image
-    results = model(image, device = device)
+    # image is not being resized!
+    preprocess_image_yolo_center_crop(image) # test 
+
+    results = model(image, verbose=False, device = device)
+    print("results")
     return results
 
 def lane_detection(image):
