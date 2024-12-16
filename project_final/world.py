@@ -6,43 +6,39 @@ import threading
 
 sensor_data = {'lane_camera':None}
 sensor_lock = threading.Lock()
+points_spawned = []
 
 def build_world(client):
     # load minimum world
     world = client.load_world("Town02", carla.MapLayer.Buildings)
 
    # world.unload_map_layer(carla.MapLayer.ParkedVehicles)
-   # world.load_map_layer(carla.MapLayer.Buildings)
-
-
-    # nav_point = world.get_random_location_from_navigation() 
-    # if not nav_point:
-    #     print("Navigation data unavailable on this map.")
-
-    # print("Navigation point:", nav_point)
-
     
     map = world.get_map()
-
     return world, map
 
 def setup_main_vehicle(world, spawn_point, blueprint_name = 'vehicle.tesla.model3'):
   
    blueprint_library = world.get_blueprint_library()
    vehicle_bp = blueprint_library.find(blueprint_name)
-
    vehicle = world.spawn_actor(vehicle_bp, spawn_point)
    print(f'spawn_point {spawn_point}')
 
    return vehicle
 
+
 def setup_vehicle(world, blueprint_name = 'vehicle.tesla.model3', spawn_point = None, autopilot=False):
+   global points_spawned
   
    blueprint_library = world.get_blueprint_library()
    vehicle_bp = blueprint_library.find(blueprint_name)
 
    spawn_points = world.get_map().get_spawn_points()
+  
    spawn_point = spawn_point if spawn_point else random.choice(spawn_points)
+
+   points_spawned.append(spawn_point)
+
    print(f'spawn_point {spawn_point}')
    vehicle = world.spawn_actor(vehicle_bp, spawn_point)
 
@@ -112,36 +108,37 @@ def setup_sensors(world, vehicle):
 
 
 
-def setup_pedestrian(world, sp, tp):
+def setup_stop_pedestrian(world, sp):
     blueprint_library = world.get_blueprint_library()
     walker_bp_list = blueprint_library.filter('walker.pedestrian.*')
-    controller_bp = blueprint_library.find('controller.ai.walker')
+    #controller_bp = blueprint_library.find('controller.ai.walker')
 
     # Spawn walker
     walker_bp = random.choice(walker_bp_list)
         
-    walker = world.spawn_actor(walker_bp, sp)
+    world.spawn_actor(walker_bp, sp)
     print("Spawned walker")
 
     # Spawn controller
-    controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
-    print("Spawned controller")
+    # controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
+    # print("Spawned controller")
 
     # Start the controller and make the walker move
     #TODO: It might walk
-    try:
-        controller.start()
-        # target_location = world.get_random_location_from_navigatgition()
-        controller.go_to_location(tp.location)
-        controller.set_max_speed(random.uniform(1.0, 2.5))
-        print(f"Controller started for walker at {walker.get_location()}")
-    except RuntimeError as e:
-        print(f"Error during controller start: {e}")
-        walker.destroy()
-        controller.destroy()
+    # try:
+    #     controller.start()
+    #     # target_location = world.get_random_location_from_navigatgition()
+    #     controller.go_to_location(tp.location)
+    #     controller.set_max_speed(random.uniform(1.0, 2.5))
+    #     print(f"Controller started for walker at {walker.get_location()}")
+    # except RuntimeError as e:
+    #     print(f"Error during controller start: {e}")
+    #     walker.destroy()
+    #     controller.destroy()
 
 
 def setup_peds_rand(world, num_pedestrians=1, min_distance=5.0):
+    global points_spawned
     blueprint_library = world.get_blueprint_library()
     walker_bp_list = blueprint_library.filter('walker.pedestrian.*')
     controller_bp = blueprint_library.find('controller.ai.walker')
@@ -153,8 +150,11 @@ def setup_peds_rand(world, num_pedestrians=1, min_distance=5.0):
     for _ in range(num_pedestrians):
 
         #spawn_point = world.get_random_location_from_navigation()
-        target_point = random.choice(spawn_points)
+        #target_point = random.choice(spawn_points)
         spawn_point = random.choice(spawn_points)
+        while( spawn_point not in points_spawned):
+            spawn_point = random.choice(spawn_points)
+        points_spawned.append(spawn_point)
 
         # Spawn walker
         walker_bp = random.choice(walker_bp_list)
@@ -202,28 +202,52 @@ def set_spectator_view_veh(world, vehicle):
 
 
 def main():
+    global points_spawned
     client = carla.Client('localhost', 2000)
     client.set_timeout(30)
     world, map = build_world(client)
 
     # car location
     #sp = carla.Transform(carla.Location(x=43.581200, y=-190.137695, z=0.300000))
+    sp = carla.Transform(carla.Location(x=76, y=105, z=0.5), carla.Rotation(pitch=0.000000, yaw=0.000000, roll=0.000000))
+    points_spawned.append(sp)
+    setup_stop_pedestrian(world, sp)
+    
+    sp = carla.Transform(carla.Location(x=76, y=106, z=0.5), carla.Rotation(pitch=0.000000, yaw=0.000000, roll=0.000000))
+    points_spawned.append(sp)
+    setup_stop_pedestrian(world, sp)
+
+
+    sp = carla.Transform(carla.Location(x=76, y=107, z=0.5), carla.Rotation(pitch=0.000000, yaw=0.000000, roll=0.000000))
+    points_spawned.append(sp)
+    setup_stop_pedestrian(world, sp)
+
+    sp = carla.Transform(carla.Location(x=76, y=108, z=0.5), carla.Rotation(pitch=0.000000, yaw=0.000000, roll=0.000000))
+    points_spawned.append(sp)
+    setup_stop_pedestrian(world, sp)
+
+    sp = carla.Transform(carla.Location(x=76, y=109, z=0.5), carla.Rotation(pitch=0.000000, yaw=0.000000, roll=0.000000))
+    points_spawned.append(sp)
+    setup_stop_pedestrian(world, sp)
+    
+    #sp = carla.Transform(carla.Location(x=100, y=105, z=0.5), carla.Rotation(pitch=0.000000, yaw=180, roll=0.000000))
     sp = carla.Transform(carla.Location(x=117, y=187, z=0.5), carla.Rotation(pitch=0.000000, yaw=180, roll=0.000000))
-   # main_veh = setup_vehicle(world, 'vehicle.tesla.model3', spawn_point=sp)
+
+    points_spawned.append(sp)
     main_veh = setup_main_vehicle(world, sp, 'vehicle.tesla.model3')
 
-    #TODO: will need there own spawn points
-    other_veh = [setup_vehicle(world, 'vehicle.audi.tt', autopilot=True),
-       setup_vehicle(world, 'vehicle.bmw.grandtourer', autopilot=True)]
+    setup_vehicle(world, 'vehicle.audi.tt', autopilot=True)
+    setup_vehicle(world, 'vehicle.bmw.grandtourer', autopilot=True)
     
     # traffic lights
     setup_traffic_lights(world, duration=5)
 
-    setup_peds_rand(world)
+    #setup_peds_rand(world)
     # sensors
     sensors, camera = setup_sensors(world, main_veh)
 
     print("world created!")
+    print(f'Points Spawned: {points_spawned}' )
     return world, main_veh, sensors, map, camera
 
 if __name__ == '__main__':

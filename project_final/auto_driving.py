@@ -92,3 +92,7 @@ if __name__ == "__main__":
     main(carla_world, carla_map, vehicle, sensors, camera)
 
 # TODO: fix vehicle spawn
+
+
+# TODO: Run rain and fog and see how it does!!!
+# TODO: Potentially run 60 signs as stop signs.

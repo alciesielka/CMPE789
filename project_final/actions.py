@@ -63,15 +63,24 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
                         action['throttle'] = 0.0
                         action['brake'] = 1.0
                         return action
+                    
+            if (obj.boxes.conf > 0.3).any().item():      
+                if any([cls in [2] for cls in obj.boxes.cls.int().tolist()]):  
+                    print("PEDESTRIAN detected")
+                    action['throttle'] = 0.0
+                    action['brake'] = 1.0
+                    return action
 
-            if (obj.boxes.conf > 0.95).any().item():  
+            if (obj.boxes.conf > 0.9).any().item():  
                 # Check for pedestrian or car (class 0 or 1)
-                if any([cls in [9, 2] for cls in obj.boxes.cls.int().tolist()]):  
+                if any([cls in [9] for cls in obj.boxes.cls.int().tolist()]):  
                     if (len(obj.boxes.cls.int().tolist()) < 3):
-                        print("Pedestrian or car detected")
+                        print("CAR detected")
                         action['throttle'] = 0.0
                         action['brake'] = 1.0
                         return action
+                    
+           
 
             
 
