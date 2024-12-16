@@ -141,7 +141,7 @@ def setup_pedestrian(world, sp, tp):
         controller.destroy()
 
 
-def setup_peds_rand(world, num_pedestrians=5, min_distance=5.0):
+def setup_peds_rand(world, num_pedestrians=1, min_distance=5.0):
     blueprint_library = world.get_blueprint_library()
     walker_bp_list = blueprint_library.filter('walker.pedestrian.*')
     controller_bp = blueprint_library.find('controller.ai.walker')
@@ -259,10 +259,9 @@ def main():
   
 
     # car location
-    sp = carla.Transform(carla.Location(x=-8.436994, y=77.451813, z=0.240557))
+    sp = carla.Transform(carla.Location(x=43.581200, y=-190.137695, z=0.300000))
 
     main_veh = setup_vehicle(world, 'vehicle.tesla.model3')
-    #main_veh = setup_vehicle(world, 'vehicle.tesla.model3', sp)
 
     #TODO: will need there own spawn points
     other_veh = [setup_vehicle(world, 'vehicle.audi.tt', autopilot=True),

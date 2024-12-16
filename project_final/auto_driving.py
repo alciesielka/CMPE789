@@ -10,19 +10,6 @@ import numpy as np
 import cv2
 from world import sensor_data, camera_callback
 
-def preprocess_lane_image(image):
-    resized = cv2.resize(image, (800, 288))
-    normalized = resized / 255.0  # Normalize to [0,1]
-    tensor = torch.from_numpy(normalized).permute(2, 0, 1).unsqueeze(0).float()
-    return tensor
-
-def detect_lanes(image, model):
-    preprocessed = preprocess_lane_image(image)
-    with torch.no_grad():
-        lane_predictions = model(preprocessed)
-    return lane_predictions
-
-
 def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
     global sensor_data
     debug_prints = False
@@ -40,7 +27,7 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
             
             objects = detect_objects(lane_image, model, device)
             lane_img_pp = preprocess_image(lane_image)
-            lane_boundaries = run_inference(model, lane_img_pp)        
+            lane_boundaries = run_inference(lane_model, lane_img_pp)        
            
 
         # Get the Current and Next Waypoint
@@ -80,6 +67,7 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
             if abs(current_location.x - destination.x) <= 2 or abs(current_location.y - destination.y) <= 2:
                 print("Arrived")
                 vehicle.destroy()
+                world.destroy()
                 break
             else:
                 print("Moved 2m")
@@ -92,5 +80,4 @@ if __name__ == "__main__":
     carla_world, vehicle, sensors, carla_map, camera = world.main()
     main(carla_world, carla_map, vehicle, sensors, camera)
 
-# TODO: fix traffic light
 # TODO: fix vehicle spawn

@@ -16,7 +16,7 @@ def load_model():
     model.eval()
     return model
 
-def preprocess_image(img, img_size=(288, 800)):
+def preprocess_image(img, img_size=(800, 600)): # may need to swap to 600 x 800
     img = cv2.resize(img, (img_size[1], img_size[0]))
     img = img.astype(np.float32) / 255.0
     transform = transforms.Compose([transforms.ToTensor(),
@@ -35,18 +35,19 @@ def run_inference(model, img):
 
 def init_yolo():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = YOLO("yolov8n.pt").to(device)  # 'n' stands for Nano, the smallest YOLOv8 model
+    print(device)
+    model = YOLO('C:\\Users\\django\\Documents\\Alex\\CMPE789-Github\\CMPE789\\train\\weights\\best.pt').to(device)  # 'n' stands for Nano, the smallest YOLOv8 model
+    # state_dict = torch.load('C:\\Users\\django\\Documents\\Alex\\CMPE789-Github\\CMPE789\\train\\weights\\best.pt', map_location='cuda')
+    # model.load_state_dict(state_dict, strict=False)
+    model.eval()
     return model, device
 
 def detect_objects(image, model, device):
     
     # Perform inference on an image
     results = model(image, device = device)
-
-    # for result in results:
-    #         if result.boxes is not None:
-    #             print(f"results {result.boxes.xyxy} {result.boxes.conf} {result.boxes.cls}")
-    # return results
+    print(results)
+    return results
 
 def lane_detection(image):
     pass

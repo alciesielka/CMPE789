@@ -8,11 +8,11 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
     action = {'steer':0.0, 'throttle':0.5, 'brake':0.0}
     print("plan action")
 
-    # follow lanes
-    if lane_boundaries:
-        print("yes lane boundaires")
+    # Follow lanes
+    if lane_boundaries is not None and lane_boundaries.nelement() > 0:  # Ensure lane_boundaries is non-empty
+        print("Yes lane boundaries")
         action['steer'] = calculate_steering(lane_boundaries, current_location, vehicle_heading)
-    
+
         # Calculate steering angle
         steering_angle = calculate_steering(
             lane_boundaries=lane_boundaries,
@@ -25,16 +25,24 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
     
     # avoid obstacles
     if objects:
-        if any([obj.boxes.conf > .2 for obj in objects]): # we can adjust threshold
-            print("yes object")
-            if any([obj.boxes.cls == 0 or obj.boxes.cls == 1 for obj in objects]):
-                print("yes ped or car")
-                action['throttle'] = 0.0
-                action['brake'] = 1.0
-            # Check for traffic Light
-            if any([obj.boxes.cls == 0 or obj.boxes.cls == 1 for obj in objects]): 
-                action['throttle'] = 0.0
-                action['brake'] = 1.0
+        for obj in objects:
+            # Ensure confidence check produces a Python bool
+            if (obj.boxes.conf > 0.2).any().item():  
+                print("Object detected")
+                # Check for pedestrian or car (class 0 or 1)
+                if any([cls in [9, 2] for cls in obj.boxes.cls.int().tolist()]):  
+                    print("Pedestrian or car detected")
+                    action['throttle'] = 0.0
+                    action['brake'] = 1.0
+                    if any([cls in [4, 5] for cls in obj.boxes.cls.int().tolist()]):
+                        if any([cls in [4] for cls in obj.boxes.cls.int().tolist()]):
+                            print("YELLOW")
+                            action['throttle'] *= 0.5
+                        else:
+                            print("RED")
+                            action['throttle'] = 0.0
+                            action['brake'] = 1.0
+
 
     # need to isolate traffic light we are closest to!
     # if traffic_light_state == carla.TrafficLightState.Red:
