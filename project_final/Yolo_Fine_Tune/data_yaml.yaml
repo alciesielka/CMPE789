@@ -1,0 +1,10 @@
+path: C:\Users\Alex\Desktop\CMPE789\project_final\Yolo_Fine_Tune  # Root directory of the dataset
+train: images\train     # Training images
+val: images\val         # Validation images
+
+names:
+  0: Vehicle
+  1: Bike
+  2: Motobike
+  3: Traffic Light
+  4: Traffic Sign

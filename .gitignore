@@ -12,4 +12,7 @@ driving_log.csv
 /project_3/bounding_box_train
 /project_3/_pycache_/my_utility.cpython-310.pyc
 /project_final/ultra_fast_lane_detection
+/project_final/Yolo_Fine_Tune/train
+/project_final/Yolo_Fine_Tune/valid
+
 *.zip
