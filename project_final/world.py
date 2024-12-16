@@ -9,7 +9,7 @@ sensor_lock = threading.Lock()
 
 def build_world(client):
     # load minimum world
-    world = client.load_world("Town02", carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
+    world = client.load_world("Town02", carla.MapLayer.Buildings)
     nav_point = world.get_random_location_from_navigation() 
     if not nav_point:
         print("Navigation data unavailable on this map.")
@@ -33,7 +33,7 @@ def setup_vehicle(world, blueprint_name = 'vehicle.tesla.model3', spawn_point = 
 
    spawn_points = world.get_map().get_spawn_points()
    spawn_point = spawn_point if spawn_point else random.choice(spawn_points)
-
+   print(f'spawn_point {spawn_point}')
    vehicle = world.spawn_actor(vehicle_bp, spawn_point)
 
    if autopilot:
@@ -82,6 +82,7 @@ def camera_callback(data):
     image_bgr = image_array[:, :, :3]
     img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
     populate_sensors(img)
+    # print(f"Image size: Width = {img.shape[1]}, Height = {img.shape[0]}")
     return img
 
 def setup_sensors(world, vehicle):
@@ -183,57 +184,30 @@ def setup_peds_rand(world, num_pedestrians=1, min_distance=5.0):
         #     walker.destroy()
         #     controller.destroy()
 
-    # spawn_point = world.get_random_location_from_navigation()
-    # # spawn walker
-    # walker = world.spawn_actor(walker_bp, spawn_point)
-    # # spawn controller
-    # controller = world.spawn_actor(controller_bp, carla.Transform(), walker.id)
-    # # start walking
-    # controller.start()
-    # # set destination
-    # controller.go_to_location(destination_point)
-    # # set walking speed (in m/s)
-    # controller.set_max_speed(speed)
-    # # stop walking
-    # controller.stop()
-
     return pedestrian_actors
 
 
 
-def setup_spectator_view(world, target_actor=None):
-    # Get the spectator camera
-    spectator = world.get_spectator()
+# def setup_spectator_view(world, target_actor=None):
+#     # Get the spectator camera
+#     spectator = world.get_spectator()
 
-    if target_actor:
-        target_location = target_actor.get_location()
+#     if target_actor:
+#         target_location = target_actor.get_location()
 
-        location = carla.Location(x=target_location.x, y=target_location.y, z=target_location.z + 10)  # 10 meters above the target
-        rotation = carla.Rotation(pitch=-30, yaw=0)  # Slight tilt to view the actor better
-        spectator.set_transform(carla.Transform(location, rotation))
-        print(f"Spectator view set above the stop sign at location: {location}")
-    else:
-        # default view of the town (above)
-        location = carla.Location(x=0, y=0, z=100)  # Height of 100 meters above the town
-        rotation = carla.Rotation(pitch=-90)  # Looking straight down at the town
+#         location = carla.Location(x=target_location.x, y=target_location.y, z=target_location.z + 10)  # 10 meters above the target
+#         rotation = carla.Rotation(pitch=-30, yaw=0)  # Slight tilt to view the actor better
+#         spectator.set_transform(carla.Transform(location, rotation))
+#         print(f"Spectator view set above the stop sign at location: {location}")
+#     else:
+#         # default view of the town (above)
+#         location = carla.Location(x=0, y=0, z=100)  # Height of 100 meters above the town
+#         rotation = carla.Rotation(pitch=-90)  # Looking straight down at the town
 
-        # Apply the transformation
-        spectator.set_transform(carla.Transform(location, rotation))
-        print("Spectator view set above the town.")
+#         # Apply the transformation
+#         spectator.set_transform(carla.Transform(location, rotation))
+#         print("Spectator view set above the town.")
 
-
-def clear_world(world):
-    # Get all actors in the world
-    actors = world.get_actors()
-
-    for actor in actors:
-        # Exclude the spectator (if necessary)
-        if actor.type_id == 'spectator':
-            continue
-        # Destroy the actor
-        actor.destroy()
-
-    print("All actors have been cleared.")
 
 def set_spectator_view_veh(world, vehicle):
     spectator = world.get_spectator()  
@@ -260,35 +234,18 @@ def main():
 
     # car location
     sp = carla.Transform(carla.Location(x=43.581200, y=-190.137695, z=0.300000))
-
-    main_veh = setup_vehicle(world, 'vehicle.tesla.model3')
+    sp = carla.Transform(carla.Location(x=117, y=187, z=0.5))
+    main_veh = setup_vehicle(world, 'vehicle.tesla.model3', spawn_point=sp)
+    
 
     #TODO: will need there own spawn points
     other_veh = [setup_vehicle(world, 'vehicle.audi.tt', autopilot=True),
        setup_vehicle(world, 'vehicle.bmw.grandtourer', autopilot=True)]
     
     # traffic lights
-    traffic_ligts = setup_traffic_lights(world, duration=5)
+    setup_traffic_lights(world, duration=5)
 
-    # pedestrians ( "having issues")
-    sp = carla.Transform(carla.Location(x=25.530020, y=110.549988, z=0.240557))
-    tp = carla.Transform(carla.Location(x=40, y=75.549988, z=0.240557))
-    #setup_pedestrian(world, sp, tp)
-
-    # sp2 = carla.Transform(carla.Location(x=22.530020, y=109.549988, z=0.240557))
-    # tp2 = carla.Transform(carla.Location(x=40, y=75.549988, z=0.240557))
-    # setup_pedestrian(world, sp2, tp2)
-
-    # sp3 = carla.Transform(carla.Location(x=20.530020, y=93.549988, z=0.240557))
-    # tp3 = carla.Transform(carla.Location(x=41, y=74.549988, z=0.240557))
-    # setup_pedestrian(world, sp3, tp3)
-
-    # stop signwwwwwwwww
-    # sign = setup_stop_sign(world)(
-
-    actors = setup_peds_rand(world)
-    #set_spectator_view_veh(world, other_veh[0])
-
+    setup_peds_rand(world)
     # sensors
     sensors, camera = setup_sensors(world, main_veh)
 

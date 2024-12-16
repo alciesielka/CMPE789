@@ -1,5 +1,5 @@
 from calculate_steering import calculate_steering, calculate_steering_to_waypoint
-from yolo import detect_objects, init_yolo, load_model, preprocess_image, run_inference
+from yolo import detect_objects, init_yolo, load_model, preprocess_image, run_inference, preprocess_image_ufld
 import carla
 import world
 from world import set_spectator_view_veh
@@ -26,7 +26,7 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
             lane_image = sensor_data['lane_camera']
             
             objects = detect_objects(lane_image, model, device)
-            lane_img_pp = preprocess_image(lane_image)
+            lane_img_pp = preprocess_image_ufld(lane_image)
             lane_boundaries = run_inference(lane_model, lane_img_pp)        
            
 
@@ -35,13 +35,13 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
         start_waypoint = carla_map.get_waypoint(current_location)
         final_waypoint = carla_map.get_waypoint(destination)
 
-        next_waypoint = start_waypoint.next(1.0)[0]  # Get the first waypoint 2 meters ahead
+        next_waypoint = start_waypoint.next(3.0)[0]  # Get the first waypoint 2 meters ahead
         next_waypoint_location = next_waypoint.transform.location
 
         if debug_prints:
             print(f"Starting Route from : {current_location}")
             print(f"-> -> -> to : {final_waypoint}")
-            print(f"Next waypoint (2m ahead): {next_waypoint_location}")
+            print(f"Next waypoint: {next_waypoint_location}")
 
         vehicle_heading = math.radians(vehicle.get_transform().rotation.yaw)
 
@@ -66,6 +66,8 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
         if abs(current_location.x - next_waypoint_location.x) <= 2 or abs(current_location.y - next_waypoint_location.y) <= 2:
             if abs(current_location.x - destination.x) <= 2 or abs(current_location.y - destination.y) <= 2:
                 print("Arrived")
+                print(f'current_location {current_location.x}, {current_location.y}')
+                print(f'destination {destination.x}, {destination.y}')
                 vehicle.destroy()
                 world.destroy()
                 break

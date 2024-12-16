@@ -34,27 +34,20 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
                     print("Pedestrian or car detected")
                     action['throttle'] = 0.0
                     action['brake'] = 1.0
-                    if any([cls in [4, 5] for cls in obj.boxes.cls.int().tolist()]):
-                        if any([cls in [4] for cls in obj.boxes.cls.int().tolist()]):
-                            print("YELLOW")
-                            action['throttle'] *= 0.5
-                        else:
-                            print("RED")
-                            action['throttle'] = 0.0
-                            action['brake'] = 1.0
+                    
+                if any([cls in [3, 4, 5] for cls in obj.boxes.cls.int().tolist()]):
+                    if any([cls in [4] for cls in obj.boxes.cls.int().tolist()]):
+                        print("YELLOW")
+                        action['throttle'] *= 0.5
 
-
-    # need to isolate traffic light we are closest to!
-    # if traffic_light_state == carla.TrafficLightState.Red:
-    #     action['throttle'] = 0.0
-    #     action['brake'] = 1.0
-    #    if debug_print == True:
-    #       print("Red Light")
-    
-    # if traffic_light_state == carla.TrafficLightState.Yellow:
-    #     action['throttle'] *= 0.5
-    #    if debug_print == True:
-    #       print("Yellow Light")
+                    elif any([cls in [3] for cls in obj.boxes.cls.int().tolist()]):
+                        print("GREEN")
+                        action['throttle'] = 0.5
+                        action['brake'] = 0.0
+                    else:
+                        print("RED")
+                        action['throttle'] = 0.0
+                        action['brake'] = 1.0
 
     # steer towards next waypoint
     # waypoint_direction = next_waypoint_location - current_location
