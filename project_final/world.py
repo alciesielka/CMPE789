@@ -11,9 +11,7 @@ points_spawned = []
 def build_world(client):
     # load minimum world
     world = client.load_world("Town02", carla.MapLayer.Buildings)
-
-   # world.unload_map_layer(carla.MapLayer.ParkedVehicles)
-    
+ 
     map = world.get_map()
     return world, map
 
@@ -47,10 +45,10 @@ def setup_vehicle(world, blueprint_name = 'vehicle.tesla.model3', spawn_point = 
    return vehicle
 
 def setup_traffic_lights(world, duration=10):
-    # Get traffic lights and set all / some of them
+    # get traffic lights and set them
     traffic_lights = world.get_actors().filter('traffic.traffic_light*')
     for i, light in enumerate(traffic_lights):
-        if i < 2:  # Configure only two traffic lights
+        if i < 2:
             light.set_green_time(duration)
             light.set_yellow_time(duration)
             light.set_red_time(duration)
@@ -80,15 +78,14 @@ def populate_sensors(img):
 
 
 def camera_callback(data):   
-    # every time we get a new image from the camera, run it through yolo
+    # every time we get a new image, process and return
     image_array = np.frombuffer(data.raw_data, dtype=np.uint8)
-    image_array = image_array.reshape((data.height, data.width, 4))  # BGRA format
+    image_array = image_array.reshape((data.height, data.width, 4))
     
-    # Convert to BGR for OpenCV (optional: remove alpha channel)
+    # convert to rgb 
     image_bgr = image_array[:, :, :3]
     img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
     populate_sensors(img)
-    # print(f"Image size: Width = {img.shape[1]}, Height = {img.shape[0]}")
     return img
 
 def setup_sensors(world, vehicle):
@@ -111,30 +108,12 @@ def setup_sensors(world, vehicle):
 def setup_stop_pedestrian(world, sp):
     blueprint_library = world.get_blueprint_library()
     walker_bp_list = blueprint_library.filter('walker.pedestrian.*')
-    #controller_bp = blueprint_library.find('controller.ai.walker')
 
-    # Spawn walker
+    # spawn walker
     walker_bp = random.choice(walker_bp_list)
         
     world.spawn_actor(walker_bp, sp)
     print("Spawned walker")
-
-    # Spawn controller
-    # controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
-    # print("Spawned controller")
-
-    # Start the controller and make the walker move
-    #TODO: It might walk
-    # try:
-    #     controller.start()
-    #     # target_location = world.get_random_location_from_navigatgition()
-    #     controller.go_to_location(tp.location)
-    #     controller.set_max_speed(random.uniform(1.0, 2.5))
-    #     print(f"Controller started for walker at {walker.get_location()}")
-    # except RuntimeError as e:
-    #     print(f"Error during controller start: {e}")
-    #     walker.destroy()
-    #     controller.destroy()
 
 
 def setup_peds_rand(world, num_pedestrians=1, min_distance=5.0):
@@ -148,9 +127,6 @@ def setup_peds_rand(world, num_pedestrians=1, min_distance=5.0):
     pedestrian_actors = []
 
     for _ in range(num_pedestrians):
-
-        #spawn_point = world.get_random_location_from_navigation()
-        #target_point = random.choice(spawn_points)
         spawn_point = random.choice(spawn_points)
         while( spawn_point not in points_spawned):
             spawn_point = random.choice(spawn_points)
@@ -163,13 +139,12 @@ def setup_peds_rand(world, num_pedestrians=1, min_distance=5.0):
         print(f'Spawned walker {_}')
         print(f'spawn_point {spawn_point}')
 
-        # Spawn cameracontroller
+        # spawn camera controller
         controller = world.spawn_actor(controller_bp, carla.Transform(), walker)
         print(f'Spawned controller{_}')
         pedestrian_actors.append(walker)
 
-        # Start the controller and make the walker move
-        #TODO: It might walk
+        # Failed code to get pedestrians to walk around 
         # try:
         #     controller.start()
         #     target_location = world.get_random_location_from_navigation()
@@ -189,11 +164,10 @@ def setup_peds_rand(world, num_pedestrians=1, min_distance=5.0):
 def set_spectator_view_veh(world, vehicle):
     spectator = world.get_spectator()  
     transform = vehicle.get_transform()  
-    
-    # Compute a position offset behind and above the vehicle based on its forward vector
+    # set up spectator camera 
     forward_vector = transform.get_forward_vector()
-    spectator_location = transform.location - forward_vector * 10  # Move 10 units behind the vehicle
-    spectator_location.z += 5  # Raise the spectator 5 units above the vehicle
+    spectator_location = transform.location - forward_vector * 10
+    spectator_location.z += 5
 
     spectator_transform = carla.Transform(spectator_location, transform.rotation)
 
@@ -207,8 +181,7 @@ def main():
     client.set_timeout(30)
     world, map = build_world(client)
 
-    # car location
-    #sp = carla.Transform(carla.Location(x=43.581200, y=-190.137695, z=0.300000))
+    # car locations
     sp = carla.Transform(carla.Location(x=76, y=105, z=0.5), carla.Rotation(pitch=0.000000, yaw=0.000000, roll=0.000000))
     points_spawned.append(sp)
     setup_stop_pedestrian(world, sp)
@@ -230,7 +203,6 @@ def main():
     points_spawned.append(sp)
     setup_stop_pedestrian(world, sp)
     
-    #sp = carla.Transform(carla.Location(x=100, y=105, z=0.5), carla.Rotation(pitch=0.000000, yaw=180, roll=0.000000))
     sp = carla.Transform(carla.Location(x=117, y=187, z=0.5), carla.Rotation(pitch=0.000000, yaw=180, roll=0.000000))
 
     points_spawned.append(sp)
@@ -238,11 +210,32 @@ def main():
 
     setup_vehicle(world, 'vehicle.audi.tt', autopilot=True)
     setup_vehicle(world, 'vehicle.bmw.grandtourer', autopilot=True)
+    setup_vehicle(world, 'vehicle.mini.cooper_s', autopilot=True)
+    setup_vehicle(world, 'vehicle.audi.tt', autopilot=True)
+
+    weather = carla.WeatherParameters(
+    # fog parameters
+    # cloudiness=90.0,
+    # fog_density=90.0,
+    # fog_distance=5.0,
+    # fog_falloff=0.5,
+    # sun_altitude_angle=10.0,
+    # precipitation=20.0,
+    # precipitation_deposits=30.0
+
+    # rain parameters
+    cloudiness=90.0,  # 0-100, cloud coverage
+    precipitation=90.0,  # 0-100, rain intensity
+    precipitation_deposits=60.0,  # 0-100, wetness/puddles
+    wind_intensity=50.0,  # 0-100, wind effect
+    sun_altitude_angle=45.0  # Sunlight angle, affects visibility
+    )
+
+    # world.set_weather(weather)
     
     # traffic lights
     setup_traffic_lights(world, duration=5)
 
-    #setup_peds_rand(world)
     # sensors
     sensors, camera = setup_sensors(world, main_veh)
 

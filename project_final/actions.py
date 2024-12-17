@@ -41,7 +41,7 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
         for obj in objects:
             print("Objects detected:")
             print(obj.boxes.cls.int().tolist())
-            # Ensure confidence check produces a Python bool
+            # used confidence to filter unwanted detections
             if (obj.boxes.conf > 0.01).any().item():
                 if any([cls in [4, 5] for cls in obj.boxes.cls.int().tolist()]):
 
@@ -80,12 +80,7 @@ def plan_action(lane_boundaries, objects, traffic_light_state, current_location,
                         action['brake'] = 1.0
                         return action
                     
-           
-
-            
-
     # steer towards next waypoint
-    # waypoint_direction = next_waypoint_location - current_location
     action['steer'] = calculate_steering_to_waypoint(next_waypoint_location, current_location, vehicle_heading)
 
     return action

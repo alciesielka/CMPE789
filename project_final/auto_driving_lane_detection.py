@@ -15,7 +15,7 @@ lane_model = UltraFastLaneDetector('culane_18.pth', device='cuda' if torch.cuda.
 
 def preprocess_lane_image(image):
     resized = cv2.resize(image, (800, 288))
-    normalized = resized / 255.0  # Normalize to [0,1]
+    normalized = resized / 255.0
     tensor = torch.from_numpy(normalized).permute(2, 0, 1).unsqueeze(0).float()
     return tensor
 
@@ -43,22 +43,23 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
             lane_image = sensor_data['lane_camera']
             objects = detect_objects(lane_image)
 
-            # Lane Detection
+            # lane Detection
             lane_data = detect_lanes(lane_image, lane_model)
             lane_boundaries = ultra_fast_lane_detection.process_output(lane_data)
 
-            # Debug lane visualization CAN REMOVE
+            # debug lane visualization (doesn't load here)
             debug_lane_image = ultra_fast_lane_detection.visualize_lanes(lane_image, lane_boundaries)
             cv2.imshow('Lane Detection', debug_lane_image)
             cv2.waitKey(1)
 
 
-        # Get the Current and Next Waypoint
+        # get current and next waypoint
         current_location = vehicle.get_location()
         start_waypoint = carla_map.get_waypoint(current_location)
         final_waypoint = carla_map.get_waypoint(destination)
 
-        next_waypoint = start_waypoint.next(2.0)[0]  # Get the first waypoint 2 meters ahead
+        # get the waypoint 2 meters ahead
+        next_waypoint = start_waypoint.next(2.0)[0] 
         next_waypoint_location = next_waypoint.transform.location
 
         if debug_prints:
@@ -67,11 +68,9 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
             print(f"Next waypoint (2m ahead): {next_waypoint_location}")
 
         vehicle_heading = math.radians(vehicle.get_transform().rotation.yaw)
-
-       # lane_boundaries = False
         traffic_light_state = False
 
-        # Plan Action
+        # plan Action
         action = plan_action(
             lane_boundaries=lane_boundaries,
             objects=objects,
@@ -82,10 +81,10 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination):
         )
         control_signal = compute_control(action)
 
-        # Execute Control
+        # execute Control
         vehicle.apply_control(control_signal)
 
-        # Check if Waypoint is Reached after movement
+        # check if Waypoint is Reached after movement
         if abs(current_location.x - next_waypoint_location.x) <= 1 and abs(current_location.y - next_waypoint_location.y) <= 1:
             if abs(current_location.x - destination.x) <= 1 and abs(current_location.y - destination.y) <= 1:
                 print("Arrived")

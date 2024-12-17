@@ -16,13 +16,10 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
     debug_prints = False
     model, device = init_yolo()
     lane_model = load_model()
-    #current_waypoint_index = 0 
     objects = []
     set_spectator_view_veh(world, vehicle)
     while True:
-       # camera.listen(camera_callback)
-       # set_spectator_view_veh(world, vehicle)
-
+        # Check to see if we have any images from callback
         if 'lane_camera' in sensor_data and sensor_data['lane_camera'] is not None:
             lane_image = sensor_data['lane_camera']
             
@@ -31,7 +28,7 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
             lane_boundaries = run_inference(lane_model, lane_img_pp)        
            
 
-        # Get the Current and Next Waypoint
+        # Get waypoints
         current_location = vehicle.get_location()
         start_waypoint = carla_map.get_waypoint(current_location)
         final_waypoint = carla_map.get_waypoint(destination)
@@ -46,7 +43,6 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
 
         vehicle_heading = math.radians(vehicle.get_transform().rotation.yaw)
 
-        #lane_boundaries = False
         traffic_light_state = False
 
         # Plan Action
@@ -80,19 +76,10 @@ def autonomous_driving(world, carla_map, vehicle, sensors, destination, camera):
 def main(world, carla_map, vehicle, sensors, camera):
     spawn_points = world.get_map().get_spawn_points()
     destination = random.choice(spawn_points).location
-    #sp = carla.Transform(carla.Location(x=43.581200, y=-190.137695, z=0.300000))
 
-   
     destination = carla.Location(x=76, y = 105, z = 0)
-    #destination = carla.Location(x=100, y=100, z=0)
     autonomous_driving(world, carla_map, vehicle, sensors, destination, camera)
 
 if __name__ == "__main__":
     carla_world, vehicle, sensors, carla_map, camera = world.main()
     main(carla_world, carla_map, vehicle, sensors, camera)
-
-# TODO: fix vehicle spawn
-
-
-# TODO: Run rain and fog and see how it does!!!
-# TODO: Potentially run 60 signs as stop signs.
